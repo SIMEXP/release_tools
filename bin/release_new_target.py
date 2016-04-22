@@ -5,7 +5,29 @@ This module is an executable that should be able
 - to update the target link in the niak distro.
 - push the target to a git repo (or lfs) with the name as a tag.
 
-@ TODO: Have the release made from specific commit using hash numbers.
+
+copyright (c) P-O Quirion
+Centre de recherche de l'institut de Gériatrie de Montréal
+Université de Montréal, 2015-2016
+Maintainer : poq@criugm.qc.ca
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 """
 
 
@@ -16,10 +38,8 @@ import sys
 
 sys.path.append("../")
 
-from pyniak import config
-from pyniak import process
-
-
+import config
+import process
 
 
 # @TODO Write doc!
@@ -86,10 +106,6 @@ To release only a new target
     parser.add_argument('--target_name', '-G', help='the tag name of the target ',
                         default=config.TARGET.TAG_NAME)
 
-
-
-    # parser.add_argument('--target_work_dir', '-w', help='the path to the Target work dir',
-    #                     default=config.TARGET.WORK_DIR)
 
 
 

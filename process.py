@@ -1,10 +1,34 @@
 """
 This module runs octave modules
+
+
+copyright (c) P-O Quirion
+Centre de recherche de l'institut de Gériatrie de Montréal
+Université de Montréal, 2015-2016
+Maintainer : poq@criugm.qc.ca
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 """
 # @TODO Write doc!
 # @TODO Remove hard coded path and reference to config inside methods
 # @TODO Make the exception - crash system more robust (except, finally)
-__author__ = 'Pierre-Olivier Quirion <pioliqui@gmail.com>'
+__author__ = 'Pierre-Olivier Quirion <poq@criugm.qc.ca>'
 
 from distutils.version import LooseVersion
 import io
@@ -26,7 +50,6 @@ import zipfile
 # TODO Add these in setup.py
 import git
 import psutil
-import requests
 
 try:
     from . import config

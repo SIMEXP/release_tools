@@ -1,5 +1,24 @@
 """
-This module is ...
+This module includes the default configuration if the SIMEXP release tools
+
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 """
 # @TODO Write doc!
 __author__ = 'Pierre-Olivier Quirion <pioliqui@gmail.com>'
@@ -9,7 +28,7 @@ __author__ = 'Pierre-Olivier Quirion <pioliqui@gmail.com>'
 import logging
 import os.path
 
-DEBUG = False
+DEBUG = True
 
 def to_full_dir_path(path):
     return os.path.dirname(os.path.abspath(os.path.expandvars(os.path.expanduser(path))))
@@ -43,7 +62,7 @@ class TARGET:
     RESULT_DIR = os.path.join(WORK_DIR, "result")  # Niak default output
     AUTO_VERSION = False
     # TAG_NAME is typically "X.Y.Z"
-    TAG_NAME = "0.15.6"
+    TAG_NAME = "1.0.0"
     LOG_PATH = "{}/result/logs".format(WORK_DIR)
 
 
@@ -61,10 +80,10 @@ class NIAK:
         URL = "https://github.com/simexp/niak.git"
     RELEASE_BRANCH = "niak-boss"
     RELEASE_FROM_BRANCH = "master"
-    RELEASE_FROM_COMMIT = "c26f8a83190255540cf09cd7a3d260b61e2a7c16"  # If none will release from tip
+    RELEASE_FROM_COMMIT = None  # If none will release from tip
 
     # RELEASE_BRANCH = ""
-    TAG_NAME = "v0.13.5"
+    TAG_NAME = "v1.0.0"
     # release Name
     DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
     WORK_DIR = "{}/work/niak-{}".format(ROOT, TAG_NAME)
