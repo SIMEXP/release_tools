@@ -48,7 +48,6 @@ import urllib.request
 import zipfile
 
 # TODO Add these in setup.py
-import git
 import psutil
 
 try:
@@ -415,7 +414,7 @@ class TargetRelease(object):
 
     def auto_tag(self, repo_path, tag_name=None):
 
-        repo = git.Repo(repo_path)
+        repo = simplegit.Repo(repo_path)
 
         old_tags = [t.name.replace(self.TAG_PREFIX, "") for t in repo.tags if self.TAG_PREFIX in t.name]
 

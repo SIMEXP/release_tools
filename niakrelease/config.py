@@ -83,7 +83,7 @@ class NIAK:
     RELEASE_FROM_COMMIT = None  # If none will release from tip
 
     # RELEASE_BRANCH = ""
-    TAG_NAME = "v1.0.0"
+    TAG_NAME = "v0.0.0"
     # release Name
     DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
     WORK_DIR = "{}/work/niak-{}".format(ROOT, TAG_NAME)

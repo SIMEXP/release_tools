@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3
 """
 This module is an executable that should be able
 - to create a niak target and, give it a name (default is version_number).
@@ -36,10 +36,7 @@ import logging
 import os
 import sys
 
-sys.path.append("../")
-
-import config
-import process
+import niakrelease as niakr 
 
 
 # @TODO Write doc!
@@ -70,16 +67,16 @@ To release only a new target
     parser.add_argument('--dry_run', '-d', action='store_true', help='no commit no push!')
 
     parser.add_argument('--niak_path', '-N', help='the path to the Niak repo',
-                        default=config.NIAK.PATH)
+                        default=niakr.config.NIAK.PATH)
 
     parser.add_argument('--niak_url', '-O', help='the url to the Niak git repo',
-                        default=config.NIAK.URL)
+                        default=niakr.config.NIAK.URL)
 
     parser.add_argument('--psom_path', '-P', help='the path to the PSOM repo',
-                        default=config.PSOM.PATH)
+                        default=niakr.config.PSOM.PATH)
 
     parser.add_argument('--psom_url', '-M', help='the url to the PSOM git repo',
-                        default=config.PSOM.URL)
+                        default=niakr.config.PSOM.URL)
 
     parser.add_argument('--release_target', '-r', action='store_true',
                         help='If True, will push the target to the '
@@ -98,20 +95,20 @@ To release only a new target
     parser.add_argument('--redo_target', '-R', help='will recompute target event if already present')
 
     parser.add_argument('--target_path', '-T', help='the path to the target ',
-                        default=config.TARGET.PATH)
+                        default=niakr.config.TARGET.PATH)
 
     parser.add_argument('--target_url', '-U', help='the url to the target',
-                        default=config.TARGET.URL)
+                        default=niakr.config.TARGET.URL)
 
     parser.add_argument('--target_name', '-G', help='the tag name of the target ',
-                        default=config.TARGET.TAG_NAME)
+                        default=niakr.config.TARGET.TAG_NAME)
 
 
 
 
     parsed = parser.parse_args(args)
 
-    new_target = process.TargetRelease(dry_run=parsed.dry_run,
+    new_target = niakr.process.TargetRelease(dry_run=parsed.dry_run,
                                        niak_path=parsed.niak_path,
                                        niak_url=parsed.niak_url,
                                        target_path=parsed.target_path,
