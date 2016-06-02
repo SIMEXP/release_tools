@@ -275,6 +275,14 @@ class Repo(object):
             cmd.append("-f")
         return self.git_go(cmd, cwd=self.path)
 
+    @property
+    def tags(self):
+        """
+        :return: tag list
+        """
+        cmd = ["tag"]
+        return self.git_go(cmd, cwd=self.path)
+
     def push(self, branch=None, remote_name=None, push_tags=None):
 
         if remote_name is None:

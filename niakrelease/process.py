@@ -48,8 +48,10 @@ import urllib.request
 import zipfile
 
 # TODO Add these in setup.py
-import psutil
-
+try:
+    import psutil
+except ImportError:
+    pass
 try:
     from . import config
     from . import simplegit
@@ -416,7 +418,7 @@ class TargetRelease(object):
 
         repo = simplegit.Repo(repo_path)
 
-        old_tags = [t.name.replace(self.TAG_PREFIX, "") for t in repo.tags if self.TAG_PREFIX in t.name]
+        old_tags = [t.replace(self.TAG_PREFIX, "") for t in repo.tags if self.TAG_PREFIX in t]
 
 
         old_tags = sorted(old_tags, key=LooseVersion, reverse=True)
@@ -447,7 +449,7 @@ class TargetRelease(object):
                         raise IOError("not happy with the release tag name!")
 
 
-        repo.create_tag("{0}{1}".format(self.TAG_PREFIX, new_tag), force=True)
+        repo.tag("{0}{1}".format(self.TAG_PREFIX, new_tag), force=True)
 
         return new_tag
 
@@ -558,7 +560,7 @@ class TargetRelease(object):
         :return:
         """
         if os.path.isdir(self._log_path):
-            os.removedirs(self._log_path)
+            shutil.rmtree(self._log_path)
 
 
     def _build(self):
@@ -589,6 +591,9 @@ class TargetRelease(object):
 
         if not os.path.isdir(target_path):
             target = simplegit.clone(config.TARGET.URL, target_path)
+        else:
+            target = simplegit.Repo(target_path)
+
         if branch is not None:
             target.pull(branch=branch)
             target.checkout(branch)
@@ -683,7 +688,7 @@ class TargetRelease(object):
         with open(docker_file, "w") as fp:
             fp.write(fout)
 
-        self._commit(self.niak_path, "Updated target name", files=[self.NIAK_GB_VARS, config.DOCKER.FILE],
+        self._commit(self.niak_path, "Updated target version to {0}".format(self.tag), files=[self.NIAK_GB_VARS, config.DOCKER.FILE],
                      branch=self.TMP_BRANCH)
 
     def _release(self):
@@ -848,7 +853,7 @@ class TargetBuilder(Runner):
         mt_work_dir = [self.MT, "{0}:{0}".format(self.work_dir)]
 
         self.load_niak = \
-            "addpath(genpath('{}'))".format(self.niak_path)
+            "addpath(genpath('{}')); ".format(self.niak_path)
 
 
         # Only builds the target

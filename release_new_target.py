@@ -92,7 +92,8 @@ To release only a new target
                         help='Will push a Niak release even if the release '
                              'assets already exist')
 
-    parser.add_argument('--redo_target', '-R', help='will recompute target event if already present')
+    parser.add_argument('--recompute_target', '-R', action='store_true',
+                        help='will recompute target event if already present')
 
     parser.add_argument('--target_path', '-T', help='the path to the target ',
                         default=niakr.config.TARGET.PATH)
@@ -117,7 +118,8 @@ To release only a new target
                                        psom_path=parsed.psom_path,
                                        psom_url=parsed.psom_url,
                                        push_niak_release=parsed.push_niak_release,
-                                       force_niak_release=parsed.force_niak_release)
+                                       force_niak_release=parsed.force_niak_release,
+                                       recompute_target=parsed.recompute_target)
 
 
     new_target.start()
