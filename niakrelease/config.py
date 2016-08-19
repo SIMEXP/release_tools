@@ -28,7 +28,7 @@ __author__ = 'Pierre-Olivier Quirion <pioliqui@gmail.com>'
 import logging
 import os.path
 
-DEBUG = False
+DEBUG = True
 
 def to_full_dir_path(path):
     return os.path.dirname(os.path.abspath(os.path.expandvars(os.path.expanduser(path))))
@@ -62,7 +62,7 @@ class TARGET:
     RESULT_DIR = os.path.join(WORK_DIR, "result")  # Niak default output
     AUTO_VERSION = False
     # TAG_NAME is typically "X.Y.Z"
-    TAG_NAME = "0.13.17"
+    TAG_NAME = "ac"
     LOG_PATH = "{}/result/logs".format(WORK_DIR)
 
 

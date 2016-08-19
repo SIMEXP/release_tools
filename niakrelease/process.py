@@ -661,7 +661,7 @@ class TargetRelease(object):
 
     def _update_niak(self):
         """
-        point to the right zip file
+        niak_gb_var and Dockerfile will point to the right target*.zip file at download time
         """
 
         niak_gb_vars_path = os.path.join(self.niak_path, self.NIAK_GB_VARS)
@@ -674,7 +674,7 @@ class TargetRelease(object):
                           "gb_niak_version = \'{}\';".format(self.niak_tag.replace('v', '')), rfp)
             if self.release_target:
                     fout = re.sub("gb_niak_target_test = .*",
-                                  "gb_niak_target_test = \'{}\';".format(self.tag), rfp)
+                                  "gb_niak_target_test = \'{}\';".format(self.tag), fout)
 
 
         with open(niak_gb_vars_path, "w") as fp:
@@ -701,8 +701,8 @@ class TargetRelease(object):
             True if successful, False otherwise.
 
         """
-        if self.release_target:
-            self._update_target()
+        # if self.release_target:
+        #     self._update_target()
 
         try:
             self._update_niak()
