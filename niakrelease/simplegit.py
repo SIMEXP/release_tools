@@ -256,7 +256,8 @@ class Repo(object):
         cmd = ["reset"]
         if hard:
             cmd.append("--hard")
-        cmd.append(commit)
+        if commit:
+            cmd.append(commit)
         return self.git_go(cmd, cwd=self.path)
 
     def pull(self, branch=None, remote_name=None):
@@ -291,8 +292,11 @@ class Repo(object):
         cmd = ["push", remote_name]
         if branch:
             cmd.append(branch)
+
         if push_tags:
-            cmd.append("--tags")
+            t_cmd = ['push', remote_name, push_tags]
+            self.git_go(t_cmd, cwd=self.path)
+
         return self.git_go(cmd, cwd=self.path)
 
 
@@ -317,6 +321,17 @@ class Repo(object):
         cmd = ["add", "-A"]
 
         return self.git_go(cmd, cwd=self.path)
+
+    def add(self, file):
+
+        if isinstance(file, str):
+            cmd = ["add", file]
+        else:
+            cmd = ["add"] + file
+
+
+        return self.git_go(cmd, cwd=self.path)
+
 
     def commit(self, message, add_all=True):
 

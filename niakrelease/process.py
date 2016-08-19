@@ -302,8 +302,15 @@ def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name):
 
     # Release needs to be created before file is upload
     if git_id is None:
+
+        if 'dev' in tag.lower():
+            prerelease = True
+        else:
+            prerelease = False
+
         data = json.dumps({"tag_name": tag, "name": tag, "body": "Complete release",
-                           "draft": False, "prerelease": False}).encode(encoding='UTF-8')
+                           "draft": False, "prerelease": prerelease}).encode(encoding='UTF-8')
+
         headers.update({"Content-Type": "application/json",
                         "Content-Length": len(data)})
         post = urllib.request.Request(url=url, headers=headers, data=data)
@@ -410,9 +417,11 @@ class TargetRelease(object):
 
         self._log_path = config.TARGET.LOG_PATH
 
+        self.target_tag = "VOID"
+
     @property
     def tag_w_prefix(self):
-        return self.TAG_PREFIX + self.tag
+        return self.TAG_PREFIX + self.target_tag
 
     def auto_tag(self, repo_path, tag_name=None):
 
@@ -421,7 +430,7 @@ class TargetRelease(object):
         old_tags = [t.replace(self.TAG_PREFIX, "") for t in repo.tags if self.TAG_PREFIX in t]
 
 
-        old_tags = sorted(old_tags, key=LooseVersion, reverse=True)
+        # old_tags = sorted(old_tags, key=LooseVersion, reverse=True)
         new_tag = None
 
         if config.TARGET.AUTO_VERSION and not tag_name:
@@ -448,10 +457,10 @@ class TargetRelease(object):
                     else:
                         raise IOError("not happy with the release tag name!")
 
+        tag = "{0}{1}".format(self.TAG_PREFIX, new_tag)
+        repo.tag(tag, force=True)
 
-        repo.tag("{0}{1}".format(self.TAG_PREFIX, new_tag), force=True)
-
-        return new_tag
+        return tag
 
     def _execute(self, cmd, cwd=None):
         logging.info("Executing \nin {0}: {1}".format(cwd, " ".join(cmd)))
@@ -619,38 +628,36 @@ class TargetRelease(object):
             logging.error("New target is similar to old one, "
                           "nothing needs to be updated")
 
-            return None
 
-        self.tag = self.auto_tag(self.result_dir, self.target_name)
+        self.target_tag = self.auto_tag(self.result_dir, self.target_name)
 
     def _push(self, path, push_tag=False, remote_name=None, branch=None):
         #TODO let change to non defaut
         repo = simplegit.Repo(path)
         # remote = repo.remote(remote_name=remote_name)
         # logging.info("pushing {} to {}".format(path, remote[remote_name]))
-        repo.push(remote_name=remote_name, branch=branch)
-        if push_tag:
-            repo.push(remote_name=remote_name, branch=branch, push_tags=push_tag)
+        repo.push(remote_name=remote_name, branch=branch, push_tags=push_tag)
 
 
     def _commit(self, path, comment, branch=None, files=None, tag=None):
         """
         Add all change, add and remove files and then commit
 
-        branch: if None, will be commited to current branch
+        branch: if None, will be comited to current branch
 
         file : will only add and commit these
         """
 
         repo = simplegit.Repo(path)
-
         if branch:
             logging.info("checking out branch {} in ".format(branch, path))
             if branch:
                 repo.branch(branch, checkout=True)
 
-        repo.add_all()
-
+        if files is not None:
+            repo.add(files)
+        else:
+            repo.add_all()
         repo.commit(comment)
 
         if tag:
@@ -666,16 +673,17 @@ class TargetRelease(object):
 
         niak_gb_vars_path = os.path.join(self.niak_path, self.NIAK_GB_VARS)
         docker_file = os.path.join(self.niak_path, config.DOCKER.FILE)
-
+        commit_message = "new niak release"
         # Update version
         with open(niak_gb_vars_path, "r") as fp:
             rfp = fp.read()
             fout = re.sub("gb_niak_version = .*",
-                          "gb_niak_version = \'{}\';".format(self.niak_tag.replace('v', '')), rfp)
+                          "gb_niak_version = \'{}\';".format(self.niak_tag), rfp)
             if self.release_target:
                     fout = re.sub("gb_niak_target_test = .*",
-                                  "gb_niak_target_test = \'{}\';".format(self.tag), fout)
+                                  "gb_niak_target_test = \'{}\';".format(self.target_tag), fout)
 
+            commit_message = "Updated target version to {0}".format(self.target_tag)
 
         with open(niak_gb_vars_path, "w") as fp:
             fp.write(fout)
@@ -688,7 +696,8 @@ class TargetRelease(object):
         with open(docker_file, "w") as fp:
             fp.write(fout)
 
-        self._commit(self.niak_path, "Updated target version to {0}".format(self.tag), files=[self.NIAK_GB_VARS, config.DOCKER.FILE],
+        self._commit(self.niak_path, commit_message,
+                     files=[self.NIAK_GB_VARS, config.DOCKER.FILE],
                      branch=self.TMP_BRANCH)
 
     def _release(self):
@@ -712,20 +721,20 @@ class TargetRelease(object):
 
         if not self.dry_run:
 
-            self._merge(self.niak_repo, self.niak_release_branch, self.TMP_BRANCH, self.niak_tag)
+            self._merge(self.niak_repo, self.TMP_BRANCH, self.niak_release_branch, tag=self.niak_tag)
 
             if self.push_niak_release:
-                self._push(self.niak_path, push_tag=True, branch=self.niak_release_branch)
+                self._push(self.niak_path, push_tag=self.niak_tag, branch=self.niak_release_branch)
 
             if self.release_target:
                 # The tmp branch is also merge to the "release from"
                 # branch so this development branch also point to the right target
 
                 # Push target
-                self._push(self.result_dir, push_tag=True, branch="master")
+                self._push(self.result_dir, push_tag=self.target_tag, branch="master")
                 # merge and push niak
-                self._merge(self.niak_repo, self.niak_release_from_branch, self.TMP_BRANCH)
-                self._push(self.niak_path, push_tag=True, branch=self.niak_release_from_branch)
+                self._merge(self.niak_repo, self.TMP_BRANCH, self.niak_release_from_branch)
+                self._push(self.niak_path, push_tag=False, branch=self.niak_release_from_branch)
 
             zip_file_path = self._build_niak_with_dependecy()
 
@@ -739,7 +748,6 @@ class TargetRelease(object):
 
         else:
             self._cleanup()
-
 
 
     def _build_niak_with_dependecy(self):
@@ -777,18 +785,18 @@ class TargetRelease(object):
 
     def _merge(self, repo, branch1, branch2, tag=None):
         """
-        Merge branch2 to branch1
-        @TODO Force branch 2 to win every time
-        this will prevent merging problems
+        Merge branch1 to branch2
+        @TODO Force branch 1 to win every time
+        this will prevent merging problems in the present context
 
         :param repo: a simplegit repo
-        :param branch1: The branch that receive the merge (does not need to exist)
-        :param branch2: The branch that provide the merge (need to exist)
+        :param branch1: The branch that provide the merge (need to exist)
+        :param branch2: The branch that receive the merge (does not need to exist)
         :param tag: Tag to be added to branch1
         :return: None
         """
-        repo.branch(branch1, checkout=True)
-        repo.merge(branch1, branch2)
+        repo.branch(branch2, checkout=True)
+        repo.merge(branch2, branch1)
 
         repo.commit("New Niak Release {0}{0}"
                     .format(self.niak_release_branch, tag))
@@ -857,96 +865,21 @@ class TargetBuilder(Runner):
 
 
         # Only builds the target
-        cmd_line = ['/bin/bash', '--login',  '-c',
+        cmd_line = ['/bin/bash',  '-lic',
                     "cd {0}; octave "
                     "--eval \"{1};opt = struct(); path_test = struct() ; "
                     "opt.flag_target=true; OPT.flag_test=true ; niak_test_all(path_test,opt)\""
                     .format(self.work_dir, self.load_niak)]
 
         # convoluted docker command
-        self.docker = (self.DOCKER_RUN + self.FULL_PRIVILEDGE + self.RM + self.MT_HOME +
+        self.docker = (self.DOCKER_RUN + self.FULL_PRIVILEDGE + self.RM +
                        self.MT_SHADOW + self.MT_GROUP + self.MT_PASSWD + self.MT_X11 + self.MT_ROOT +
                        self.MT_TMP + mt_work_dir + self.ENV_DISPLAY + self.USER + self.IMAGE + cmd_line)
+        # self.docker = (self.DOCKER_RUN + self.FULL_PRIVILEDGE + self.RM + self.MT_HOME +
+        #                self.MT_SHADOW + self.MT_GROUP + self.MT_PASSWD + self.MT_X11 + self.MT_ROOT +
+        #                self.MT_TMP + mt_work_dir + self.ENV_DISPLAY + self.USER + self.IMAGE + cmd_line)
 
         self.subprocess_cmd = self.docker
-
-
-class OctavePortal(Runner):
-    """ This class is used to execute octave code
-
-        @todo Make the tool more sophisticated by having a pipe to
-            a continuously running octave process that listen to stdin
-            and run lines using eval(cmd) in octave
-
-        @todo create a mapping dictionary for niak to pyniak fct
-
-    """
-
-    # DOCKER OPT CST
-
-    MT = "-v"
-    DOCKER_RUN = ["docker", "run"]
-    FULL_PRIVILEDGE = ["--privileged"]
-    RM = ["--rm"]
-    MT_SHADOW = [MT, "/etc/shadow:/etc/shadow"]
-    MT_GROUP = [MT, "/etc/group:/etc/group"]
-    MT_PASSWD = [MT, "/etc/passwd:/etc/passwd"]
-    MT_X11 =  [MT, "/tmp/.X11-unix:/tmp/.X11-unix"]
-    MT_HOME = [MT, "{0}:{0}".format(os.getenv("HOME"))]
-    ENV_DISPLAY = ["-e", "DISPLAY=unix$DISPLAY"]
-    USER = ["'--user", str(os.getuid())]
-    IMAGE = ["simexp/octave"]
-
-    def __init__(self, work_dir=None):
-
-        self.bin = ["/usr/bin/env", "octave", "--eval"]
-
-        self.load_niak_psom = \
-            "addpath(genpath('{0}'));addpath(genpath('{1}'))".format(config.NIAK.PATH, config.PSOM.PATH)
-
-        # target dir as default'
-        self.work_dir = work_dir if work_dir else config.TARGET.WORK_DIR
-
-        if not os.path.isdir(self.work_dir):
-            os.mkdir(self.work_dir)
-
-        cmd_line = ['/bin/bash', '-c',
-                    "cd {0} ;source /opt/minc-itk4/minc-toolkit-config.sh; octave --eval \"{1};{{0}}\""
-                    .format(self.work_dir, self.load_niak_psom)]
-
-        # convoluted docker command
-        self.docker = self.DOCKER_RUN + self.FULL_PRIVILEDGE + self.RM + self.MT_SHADOW + self.MT_GROUP \
-                        + self.MT_PASSWD + self.MT_X11 + self.ENV_DISPLAY + self.USER + self.IMAGE + cmd_line
-
-
-
-    def _execute(self, cmds):
-        """
-        calls octave
-        """
-        if isinstance(cmds, str):
-            cmds = [cmds]
-
-        cmds = ';'.join(cmds)
-
-        self.docker[-1] = self.docker[-1].format(cmds)
-
-        logging.info("executing {0}".format(self.docker))
-        oct_process = subprocess.Popen(self.docker)
-
-        stdout, stderr = oct_process.communicate()
-
-        logging.info(stdout)
-        logging.error(stderr)
-
-    def test_all(self):
-        # niak test all
-
-        options = []
-
-        opt = ','.join(options)
-
-        self._execute("niak_test_all({0})".format(opt))
 
 
 
