@@ -45,7 +45,7 @@ class DOCKER:
     Docker Config
     """
     # Version of octave docker image used
-    IMAGE = "simexp/niak_dependency"
+    IMAGE = "simexp/niak_dependency:1.1"
     FILE = "Dockerfile"
 
 class TARGET:
@@ -62,7 +62,7 @@ class TARGET:
     RESULT_DIR = os.path.join(WORK_DIR, "result")  # Niak default output
     AUTO_VERSION = False
     # TAG_NAME is typically "X.Y.Z"
-    TAG_NAME = "0.13.17"
+    TAG_NAME = "ab"
     LOG_PATH = "{}/result/logs".format(WORK_DIR)
 
 
@@ -78,12 +78,13 @@ class NIAK:
         URL = "https://github.com/poquirion/niak.git"
     else:
         URL = "https://github.com/simexp/niak.git"
-    RELEASE_BRANCH = "niak-boss"
+    #RELEASE_BRANCH = "niak-boss"
+    RELEASE_BRANCH = "master"
     RELEASE_FROM_BRANCH = "master"
-    RELEASE_FROM_COMMIT = None  # If none will release from tip
+    RELEASE_FROM_COMMIT = None  # If None will release from tip
 
     # RELEASE_BRANCH = ""
-    TAG_NAME = "v0.0.0"
+    TAG_NAME = "0.16.0"
     # release Name
     DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
     WORK_DIR = "{}/work/niak-{}".format(ROOT, TAG_NAME)

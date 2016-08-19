@@ -39,7 +39,8 @@ import sys
 import niakrelease as niakr 
 
 
-# @TODO Write doc!
+# TODO Write doc!
+# TODO Force tag in option, make tool crash when not provides (no more default value)
 __author__ = 'Pierre-Olivier Quirion <pioliqui@gmail.com>'
 
 def main(args=None):
