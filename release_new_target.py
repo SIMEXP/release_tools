@@ -102,8 +102,8 @@ To release only a new target
     parser.add_argument('--target_url', '-U', help='the url to the target',
                         default=niakr.config.TARGET.URL)
 
-    parser.add_argument('--target_name', '-G', help='the tag name of the target ',
-                        default=niakr.config.TARGET.TAG_NAME)
+    parser.add_argument('--target_suffix', '-G', help='the tag name of the target ',
+                        default=niakr.config.TARGET.TAG_SUFFIX)
 
 
 
@@ -114,7 +114,7 @@ To release only a new target
                                        niak_path=parsed.niak_path,
                                        niak_url=parsed.niak_url,
                                        target_path=parsed.target_path,
-                                       target_name=parsed.target_name,
+                                       target_suffix=parsed.target_suffix,
                                        release_target=parsed.release_target,
                                        psom_path=parsed.psom_path,
                                        psom_url=parsed.psom_url,

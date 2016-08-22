@@ -60,9 +60,8 @@ class TARGET:
     WORK_DIR = "{}/work/target".format(ROOT)
     PATH = "{}/niak_target".format(ROOT)
     RESULT_DIR = os.path.join(WORK_DIR, "result")  # Niak default output
-    AUTO_VERSION = False
     # TAG_NAME is typically "X.Y.Z"
-    TAG_NAME = "ac"
+    TAG_SUFFIX = "ac"
     LOG_PATH = "{}/result/logs".format(WORK_DIR)
 
 

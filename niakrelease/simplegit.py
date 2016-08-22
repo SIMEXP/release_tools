@@ -294,10 +294,17 @@ class Repo(object):
             cmd.append(branch)
 
         if push_tags:
-            t_cmd = ['push', remote_name, push_tags]
-            self.git_go(t_cmd, cwd=self.path)
+            self.push_tag(push_tags, remote_name)
 
         return self.git_go(cmd, cwd=self.path)
+
+    def push_tag(self, tag, remote_name=None):
+
+        if remote_name is None:
+            remote_name = "origin"
+        t_cmd = ['push', remote_name, tag]
+
+        return self.git_go(t_cmd, cwd=self.path)
 
 
     def merge(self, to_branch, from_branch, strategy=None):

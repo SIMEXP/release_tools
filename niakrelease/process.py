@@ -359,7 +359,7 @@ class TargetRelease(object):
 
     TMP_BRANCH = '_TMP_RELEASE_BRANCH_'
 
-    def __init__(self, target_path=None, niak_path=None, target_name=None,
+    def __init__(self, target_path=None, target_suffix=None, niak_path=None,
                  niak_tag=None, dry_run=False, recompute_target=False,
                  result_dir=None, release_target=True, niak_url=None, psom_path=None,
                  psom_url=None, push_niak_release=False, niak_release_from_branch=None,
@@ -372,8 +372,6 @@ class TargetRelease(object):
 
         niak_release_branch = config.NIAK.RELEASE_BRANCH
         # target tag name
-        self.target_name = target_name
-
         self.target_path = target_path if target_path else config.TARGET.PATH
 
         self.niak_path = niak_path if niak_path else config.NIAK.PATH
@@ -417,11 +415,13 @@ class TargetRelease(object):
 
         self._log_path = config.TARGET.LOG_PATH
 
-        self.target_tag = "VOID"
+        self.target_suffix = target_suffix
+
+        self.target = None
 
     @property
-    def tag_w_prefix(self):
-        return self.TAG_PREFIX + self.target_tag
+    def target_tag_w_prefix(self):
+        return self.TAG_PREFIX + self.target_suffix
 
     def auto_tag(self, repo_path, tag_name=None):
 
@@ -524,7 +524,7 @@ class TargetRelease(object):
         if self.release_target:
             if self.recompute_target:
                 self.delete_target_log()
-            self._build()
+            self.target = self._build()
             pass
         # if self.niak_release_branch:
         self._release()
@@ -581,14 +581,16 @@ class TargetRelease(object):
         bool
             True if successful, False otherwise.
         """
-        target = TargetBuilder(niak_path=self.niak_path, work_dir=self.work_dir
-                               , error_form_log=True,)
-        ret_val = target.run()
+        target = TargetBuilder(self.work_dir, self.niak_path, self.result_dir, self.target_tag_w_prefix
+                               , error_form_log=True)
+        # DEBUG !!!
+        # ret_val = target.run()
         happiness = input("Are you happy with the target?Y/[N]")
         logging.info("look at {}/logs for more info".format(self.work_dir))
 
-        if ret_val != 0 or happiness != 'Y':
-            raise Error("The target was not computed properly")
+        # if ret_val != 0 or happiness != 'Y':
+        #     raise Error("The target was not computed properly")
+        return target
 
     def _pull_target(self, target_path=None, branch=None):
         """
@@ -628,15 +630,17 @@ class TargetRelease(object):
             logging.error("New target is similar to old one, "
                           "nothing needs to be updated")
 
-
-        self.target_tag = self.auto_tag(self.result_dir, self.target_name)
-
-    def _push(self, path, push_tag=False, remote_name=None, branch=None):
+    def _push(self, path, push_tag=None, remote_name=None, branch=None):
         #TODO let change to non defaut
         repo = simplegit.Repo(path)
         # remote = repo.remote(remote_name=remote_name)
         # logging.info("pushing {} to {}".format(path, remote[remote_name]))
         repo.push(remote_name=remote_name, branch=branch, push_tags=push_tag)
+
+
+    def _push_tag(self, path, tag):
+        repo = simplegit.Repo(path)
+        repo.push_tag(tag)
 
 
     def _commit(self, path, comment, branch=None, files=None, tag=None):
@@ -681,9 +685,9 @@ class TargetRelease(object):
                           "gb_niak_version = \'{}\';".format(self.niak_tag), rfp)
             if self.release_target:
                     fout = re.sub("gb_niak_target_test = .*",
-                                  "gb_niak_target_test = \'{}\';".format(self.target_tag), fout)
+                                  "gb_niak_target_test = \'{}\';".format(self.target_suffix), fout)
 
-            commit_message = "Updated target version to {0}".format(self.target_tag)
+            commit_message = "Updated target version to {0}".format(self.target_suffix)
 
         with open(niak_gb_vars_path, "w") as fp:
             fp.write(fout)
@@ -731,12 +735,17 @@ class TargetRelease(object):
                 # branch so this development branch also point to the right target
 
                 # Push target
-                self._push(self.result_dir, push_tag=self.target_tag, branch="master")
                 # merge and push niak
                 self._merge(self.niak_repo, self.TMP_BRANCH, self.niak_release_from_branch)
-                self._push(self.niak_path, push_tag=False, branch=self.niak_release_from_branch)
+                self.niak_repo.tag(self.target_tag_w_prefix)
+                self._push(self.niak_path, push_tag=self.target_tag_w_prefix, branch=self.niak_release_from_branch)
+                upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
+                                      self.target_tag_w_prefix,
+                                      self.target.zip_path, self.target.zip_name)
 
-            zip_file_path = self._build_niak_with_dependecy()
+            niak_w_dependency_zip_path = self._build_niak_with_dependecy()
+
+            # self.target
 
             if self.push_niak_release:
                 if self.force_niak_release:
@@ -744,7 +753,7 @@ class TargetRelease(object):
                     delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
                                      self.niak_tag, config.NIAK.DEPENDENCY_RELEASE)
                 upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
-                                      self.niak_tag, zip_file_path, config.NIAK.DEPENDENCY_RELEASE)
+                                      self.niak_tag, niak_w_dependency_zip_path, config.NIAK.DEPENDENCY_RELEASE)
 
         else:
             self._cleanup()
@@ -847,13 +856,15 @@ class TargetBuilder(Runner):
     USER = ["--user", str(os.getuid())]
     IMAGE = [config.DOCKER.IMAGE]
 
-    def __init__(self, work_dir, niak_path, error_form_log=False):
+    def __init__(self, work_dir, niak_path, result_dir, tag_name, error_form_log=False):
 
         super().__init__(error_form_log=error_form_log)
 
         #TODO make them arg not kwargs
         self.niak_path = niak_path
         self.work_dir = work_dir
+        self.result_dir = result_dir
+        self.tag_name = tag_name
 
         if not os.path.isdir(self.work_dir):
             os.makedirs(self.work_dir)
@@ -880,7 +891,24 @@ class TargetBuilder(Runner):
         #                self.MT_TMP + mt_work_dir + self.ENV_DISPLAY + self.USER + self.IMAGE + cmd_line)
 
         self.subprocess_cmd = self.docker
+        self.archive_ext = 'zip'
+        self._zip_path = None
+        self.zip_name = '{0}.{1}'.format(self.tag_name, self.archive_ext)
 
+    @property
+    def zip_path(self):
+        if self._zip_path is None:
+            self._zip_path = self.build_zip()
+        return self._zip_path
+
+    def build_zip(self):
+
+        target_path = "{0}/{1}".format(self.work_dir, self.tag_name)
+        shutil.rmtree(target_path)
+        shutil.copytree(self.result_dir, target_path)
+        shutil.make_archive(self.tag_name, self.archive_ext, self.work_dir, self.tag_name)
+        shutil.rmtree('{0}/{1}'.format(self.work_dir, self.zip_name))
+        return shutil.move(self.zip_name, self.work_dir)
 
 
 if __name__ == "__main__":
