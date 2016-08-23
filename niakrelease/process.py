@@ -201,11 +201,12 @@ class Runner(object):
 
             logging.error( "The subprocess return code is {}, it has also logged line with"
                            " \"error\" in them\nreturning ".format(return_code))
-            retval = input("Do you want to continue process? Y/[N]")
-            if retval == "Y":
-                return_code = 0
-            else:
-                return_code = 1
+            return 0
+            # retval = input("Do you want to continue process? Y/[N]")
+            # if retval == "Y":
+            #     return_code = 0
+            # else:
+            #     return_code = 1
 
         return return_code
 
@@ -274,7 +275,9 @@ def delete_git_asset(repo_owner, repo_name, tag, asset_name):
         .format(api=GIT.API, owner=repo_owner, repo=repo_name, asset_id=to_be_deleted_id)
     requests.delete(url=del_url, headers=headers)
 
-def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name):
+def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name
+                          , prerelease=None
+                          , body=None):
     """A convenience method to upload release file to github
 
     :param repo_owner: the repo owner
@@ -304,13 +307,19 @@ def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name):
     if git_id is None:
 
         if 'dev' in tag.lower():
-            prerelease = True
+            prerel = True
         else:
-            prerelease = False
+            prerel = False
 
-        data = json.dumps({"tag_name": tag, "name": tag, "body": "Complete release",
-                           "draft": False, "prerelease": prerelease}).encode(encoding='UTF-8')
+        if prerelease is not None:
+            prerel = prerelease
 
+        if body is None:
+            body = "Complete release"
+        else:
+            body = body
+        data = json.dumps({"tag_name": tag, "name": tag, "body": body,
+                           "draft": False, "prerelease": prerel}).encode(encoding='UTF-8')
         headers.update({"Content-Type": "application/json",
                         "Content-Length": len(data)})
         post = urllib.request.Request(url=url, headers=headers, data=data)
@@ -447,8 +456,8 @@ class TargetRelease(object):
                       "The tag will be {0}{2} :".format(self.TAG_PREFIX, old_tags, new_tag))
 
                 #TODO check if format is right
-                answers = input("are you happy with that? Y/[N]")
-
+                # answers = input("are you happy with that? Y/[N]")
+                answers = 'Y'
                 if answers != "Y":
                     answers = input("What name should it be? type [Quit] to exit\n"
                                     "Do not input the target prefix {}".format(self.TAG_PREFIX))
@@ -584,7 +593,7 @@ class TargetRelease(object):
         target = TargetBuilder(self.work_dir, self.niak_path, self.result_dir, self.target_tag_w_prefix
                                , error_form_log=True)
         # DEBUG !!!
-        # ret_val = target.run()
+        ret_val = target.run()
         happiness = input("Are you happy with the target?Y/[N]")
         logging.info("look at {}/logs for more info".format(self.work_dir))
 
@@ -739,21 +748,50 @@ class TargetRelease(object):
                 self._merge(self.niak_repo, self.TMP_BRANCH, self.niak_release_from_branch)
                 self.niak_repo.tag(self.target_tag_w_prefix)
                 self._push(self.niak_path, push_tag=self.target_tag_w_prefix, branch=self.niak_release_from_branch)
-                upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
-                                      self.target_tag_w_prefix,
-                                      self.target.zip_path, self.target.zip_name)
+
 
             niak_w_dependency_zip_path = self._build_niak_with_dependecy()
 
             # self.target
 
-            if self.push_niak_release:
-                if self.force_niak_release:
-                # Delete the release if it already exist and repush it.
-                    delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
+            if self.release_target and self.push_niak_release:
+
+                # if self.force_niak_release:
+                    # Delete the release if it already exist and repush it.
+                delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
                                      self.niak_tag, config.NIAK.DEPENDENCY_RELEASE)
                 upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
-                                      self.niak_tag, niak_w_dependency_zip_path, config.NIAK.DEPENDENCY_RELEASE)
+                                      self.niak_tag, niak_w_dependency_zip_path
+                                      , config.NIAK.DEPENDENCY_RELEASE)
+
+
+                upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
+                                      self.niak_tag,
+                                      self.target.zip_path, self.target.zip_name)
+
+
+            elif self.release_target and not self.push_niak_release:
+                delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
+                                 self.target_tag_w_prefix, self.target.zip_name)
+
+                upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
+                                  self.target_tag_w_prefix,
+                                  self.target.zip_path, self.target.zip_name, prerelease=True,
+                                  body="Target release only")
+
+            elif self.push_niak_release and not self.release_target:
+                if self.release_target and self.push_niak_release:
+                    # if self.force_niak_release:
+                    # Delete the release if it already exist and repush it.
+
+                    delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
+                                     self.niak_tag, config.NIAK.DEPENDENCY_RELEASE)
+                    upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
+                                          self.niak_tag, niak_w_dependency_zip_path
+                                          , config.NIAK.DEPENDENCY_RELEASE)
+
+
+
 
         else:
             self._cleanup()
@@ -904,10 +942,11 @@ class TargetBuilder(Runner):
     def build_zip(self):
 
         target_path = "{0}/{1}".format(self.work_dir, self.tag_name)
-        shutil.rmtree(target_path)
+        shutil.rmtree(target_path, ignore_errors=True)
         shutil.copytree(self.result_dir, target_path)
         shutil.make_archive(self.tag_name, self.archive_ext, self.work_dir, self.tag_name)
-        shutil.rmtree('{0}/{1}'.format(self.work_dir, self.zip_name))
+        # shutil.rmtree('{0}/{1}'.format(self.work_dir, self.zip_name), ignore_errors=True)
+        os.remove('{0}/{1}'.format(self.work_dir, self.zip_name))
         return shutil.move(self.zip_name, self.work_dir)
 
 
