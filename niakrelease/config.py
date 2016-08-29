@@ -121,7 +121,9 @@ class GIT:
     API = "https://api.github.com"
     UPLOAD_API = "https://uploads.github.com"
     TOKEN = os.getenv("GIT_TOKEN")
-    if DEBUG:
-        OWNER = "poquirion"
-    else:
-        OWNER = "simexp"
+    @property
+    def OWNER(self):
+        if DEBUG:
+            return "poquirion"
+        else:
+            return "simexp"
