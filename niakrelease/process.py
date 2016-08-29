@@ -241,7 +241,7 @@ class Runner(object):
             parent.kill()
 
 
-def delete_git_asset(repo_owner, repo_name, tag, asset_name):
+def delete_git_asset(repo_owner, repo_name, tag, asset_name, raise_on_error=False):
     """ Delete the assset "asset_name" of the git release "repo_owner/repo_name:tag"
     :param repo_owner: the repo owner
     :param repo_name: the repo name
@@ -251,6 +251,14 @@ def delete_git_asset(repo_owner, repo_name, tag, asset_name):
     """
     import requests
     GIT = config.GIT
+
+    # if raise_on_error:
+    #     class ERROR_THAT_DOES_NOT_EXIST(Exception):
+    #         pass
+    #     THE_ERROR = ERROR_THAT_DOES_NOT_EXIST
+    # else:
+    #     THE_ERROR = urllib.error.HTTPError
+
 
     headers = {"Accept": "application/vnd.github.manifold-preview",
                 "Authorization": "token {}".format(config.GIT.TOKEN)}
@@ -946,7 +954,11 @@ class TargetBuilder(Runner):
         shutil.copytree(self.result_dir, target_path)
         shutil.make_archive(self.tag_name, self.archive_ext, self.work_dir, self.tag_name)
         # shutil.rmtree('{0}/{1}'.format(self.work_dir, self.zip_name), ignore_errors=True)
-        os.remove('{0}/{1}'.format(self.work_dir, self.zip_name))
+        try:
+            new_zip_file = '{0}/{1}'.format(self.work_dir, self.zip_name)
+            os.remove(new_zip_file)
+        except FileNotFoundError:
+            print("{0} never created in that file".format(new_zip_file))
         return shutil.move(self.zip_name, self.work_dir)
 
 
