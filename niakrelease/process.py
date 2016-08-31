@@ -647,17 +647,17 @@ class TargetRelease(object):
             logging.error("New target is similar to old one, "
                           "nothing needs to be updated")
 
-    def _push(self, path, push_tag=None, remote_name=None, branch=None):
-        #TODO let change to non defaut
+    def _push(self, path, push_tag=None, remote_name=None, branch=None, force=False):
+        #TODO lets change to non defaut
         repo = simplegit.Repo(path)
         # remote = repo.remote(remote_name=remote_name)
         # logging.info("pushing {} to {}".format(path, remote[remote_name]))
-        repo.push(remote_name=remote_name, branch=branch, push_tags=push_tag)
+        repo.push(remote_name=remote_name, branch=branch, push_tags=push_tag, force=force)
 
 
-    def _push_tag(self, path, tag):
+    def _push_tag(self, path, tag, force=False):
         repo = simplegit.Repo(path)
-        repo.push_tag(tag)
+        repo.push_tag(tag, force=False)
 
 
     def _commit(self, path, comment, branch=None, files=None, tag=None):
@@ -731,9 +731,6 @@ class TargetRelease(object):
             True if successful, False otherwise.
 
         """
-        # if self.release_target:
-        #     self._update_target()
-
         try:
             self._update_niak()
         except BaseException as e:
@@ -745,7 +742,7 @@ class TargetRelease(object):
             self._merge(self.niak_repo, self.TMP_BRANCH, self.niak_release_branch, tag=self.niak_tag)
 
             if self.push_niak_release:
-                self._push(self.niak_path, push_tag=self.niak_tag, branch=self.niak_release_branch)
+                self._push(self.niak_path, push_tag=self.niak_tag, branch=self.niak_release_branch,force=True)
 
             if self.release_target:
                 # The tmp branch is also merge to the "release from"
@@ -760,40 +757,22 @@ class TargetRelease(object):
 
             niak_w_dependency_zip_path = self._build_niak_with_dependecy()
 
-            # self.target
-
-            if self.release_target and self.push_niak_release:
-
-                # if self.force_niak_release:
-                    # Delete the release if it already exist and repush it.
-                delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
-                                     self.niak_tag, config.NIAK.DEPENDENCY_RELEASE)
-                upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
-                                      self.niak_tag, niak_w_dependency_zip_path
-                                      , config.NIAK.DEPENDENCY_RELEASE)
-
-
-                upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
-                                      self.niak_tag,
-                                      self.target.zip_path, self.target.zip_name)
-
-
-            elif self.release_target and not self.push_niak_release:
+            if self.release_target:
                 delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
                                  self.target_tag_w_prefix, self.target.zip_name)
 
                 upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
-                                  self.target_tag_w_prefix,
-                                  self.target.zip_path, self.target.zip_name, prerelease=True,
-                                  body="Target release only")
+                                      self.target_tag_w_prefix,
+                                      self.target.zip_path, self.target.zip_name, prerelease=False,
+                                      body="Target release only")
 
-            elif self.push_niak_release and not self.release_target:
-                if self.release_target and self.push_niak_release:
+            if self.push_niak_release:
                     # if self.force_niak_release:
                     # Delete the release if it already exist and repush it.
-
+                    print('removing older asset with similar name')
                     delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
                                      self.niak_tag, config.NIAK.DEPENDENCY_RELEASE)
+                    print('pushing new niak release')
                     upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
                                           self.niak_tag, niak_w_dependency_zip_path
                                           , config.NIAK.DEPENDENCY_RELEASE)
@@ -826,11 +805,13 @@ class TargetRelease(object):
         shutil.rmtree(config.NIAK.WORK_DIR+"/extensions/psom-{}/.git".format(config.PSOM.RELEASE_TAG))
 
         # BCT
+        print('download BCT form source and copying')
         BCTZIP = urllib.request.urlopen(config.BCT.url)
         with zipfile.ZipFile(io.BytesIO(BCTZIP.read())) as z:
             z.extractall(config.NIAK.WORK_DIR+"/extensions/BCT")
 
         # the base_dir funky stuff is the way to include the leading directory in zip...
+        print('creating niak w denpencency zip file')
         filename, ext = os.path.splitext(config.NIAK.DEPENDENCY_RELEASE)
         shutil.make_archive(config.NIAK.WORK_DIR+"/../"+filename,
                             ext[1:], root_dir=config.NIAK.WORK_DIR+"/../",
@@ -841,8 +822,6 @@ class TargetRelease(object):
     def _merge(self, repo, branch1, branch2, tag=None):
         """
         Merge branch1 to branch2
-        @TODO Force branch 1 to win every time
-        this will prevent merging problems in the present context
 
         :param repo: a simplegit repo
         :param branch1: The branch that provide the merge (need to exist)
@@ -851,7 +830,7 @@ class TargetRelease(object):
         :return: None
         """
         repo.branch(branch2, checkout=True)
-        repo.merge(branch2, branch1)
+        repo.merge(branch1, branch2, strategy='theirs')
 
         repo.commit("New Niak Release {0}{0}"
                     .format(self.niak_release_branch, tag))
@@ -925,17 +904,13 @@ class TargetBuilder(Runner):
         cmd_line = ['/bin/bash',  '-lic',
                     "cd {0}; octave "
                     "--eval \"{1};opt = struct(); path_test = struct() ; "
-                    "opt.flag_target=true; OPT.flag_test=true ; niak_test_all(path_test,opt)\""
+                    "opt.flag_target=true; OPT.flag_test=true ;niak_test_all(path_test,opt)\""
                     .format(self.work_dir, self.load_niak)]
 
         # convoluted docker command
         self.docker = (self.DOCKER_RUN + self.FULL_PRIVILEDGE + self.RM +
-                       self.MT_SHADOW + self.MT_GROUP + self.MT_PASSWD + self.MT_X11 + self.MT_ROOT +
-                       self.MT_TMP + mt_work_dir + self.ENV_DISPLAY + self.USER + self.IMAGE + cmd_line)
-        # self.docker = (self.DOCKER_RUN + self.FULL_PRIVILEDGE + self.RM + self.MT_HOME +
-        #                self.MT_SHADOW + self.MT_GROUP + self.MT_PASSWD + self.MT_X11 + self.MT_ROOT +
-        #                self.MT_TMP + mt_work_dir + self.ENV_DISPLAY + self.USER + self.IMAGE + cmd_line)
-
+                       self.MT_X11 + self.MT_ROOT + self.MT_TMP +
+                       mt_work_dir + self.ENV_DISPLAY + self.USER + self.IMAGE + cmd_line)
         self.subprocess_cmd = self.docker
         self.archive_ext = 'zip'
         self._zip_path = None

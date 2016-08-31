@@ -28,7 +28,7 @@ __author__ = 'Pierre-Olivier Quirion <pioliqui@gmail.com>'
 import logging
 import os.path
 
-DEBUG = True
+DEBUG = False
 
 def to_full_dir_path(path):
     return os.path.dirname(os.path.abspath(os.path.expandvars(os.path.expanduser(path))))
@@ -45,7 +45,7 @@ class DOCKER:
     Docker Config
     """
     # Version of octave docker image used
-    IMAGE = "simexp/niak_dependency:1.1"
+    IMAGE = "simexp/niak_dependency:u12_o4"
     FILE = "Dockerfile"
 
 class TARGET:
@@ -61,8 +61,8 @@ class TARGET:
     PATH = "{}/niak_target".format(ROOT)
     RESULT_DIR = os.path.join(WORK_DIR, "result")  # Niak default output
     # TAG_NAME is typically "X.Y.Z"
-    TAG_SUFFIX = "ac"
     LOG_PATH = "{}/result/logs".format(WORK_DIR)
+    TAG_SUFFIX = "aa"
 
 
 class NIAK:
@@ -77,13 +77,12 @@ class NIAK:
         URL = "https://github.com/poquirion/niak.git"
     else:
         URL = "https://github.com/simexp/niak.git"
-    #RELEASE_BRANCH = "niak-boss"
-    RELEASE_BRANCH = "master"
+    RELEASE_BRANCH = "niak-boss"
     RELEASE_FROM_BRANCH = "master"
     RELEASE_FROM_COMMIT = None  # If None will release from tip
 
     # RELEASE_BRANCH = ""
-    TAG_NAME = "0.16.0"
+    TAG_NAME = "v0.16.0"
     # release Name
     DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
     WORK_DIR = "{}/work/niak-{}".format(ROOT, TAG_NAME)
@@ -95,14 +94,13 @@ class PSOM:
     """
     PSOM config
     """
-
     PATH = "{}/psom".format(ROOT)
     if DEBUG:
         URL = "https://github.com/poquirion/psom.git"
     else:
         URL = "https://github.com/simexp/psom.git"
 # URL = "https://github.com/poquirion/psom.git"
-    RELEASE_TAG = "v1.2.0"
+    RELEASE_TAG = "v2.0.1-alpha"
 
 
 class BCT:
@@ -121,9 +119,7 @@ class GIT:
     API = "https://api.github.com"
     UPLOAD_API = "https://uploads.github.com"
     TOKEN = os.getenv("GIT_TOKEN")
-    @property
-    def OWNER(self):
-        if DEBUG:
-            return "poquirion"
-        else:
-            return "simexp"
+    if DEBUG:
+        OWNER = "poquirion"
+    else:
+        OWNER = "simexp"

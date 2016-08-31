@@ -124,7 +124,6 @@ To release only a new target
                                        force_niak_release=parsed.force_niak_release,
                                        recompute_target=parsed.recompute_target)
 
-
     new_target.start()
 
 if __name__ == "__main__":

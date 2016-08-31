@@ -273,7 +273,8 @@ class Repo(object):
 
         cmd = ["tag", name]
         if force:
-            cmd.append("-f")
+            cmd = ["tag", '-f', name]
+
         return self.git_go(cmd, cwd=self.path)
 
     @property
@@ -284,30 +285,40 @@ class Repo(object):
         cmd = ["tag"]
         return self.git_go(cmd, cwd=self.path)
 
-    def push(self, branch=None, remote_name=None, push_tags=None):
+    def push(self, branch=None, remote_name=None, push_tags=None, force=False):
 
         if remote_name is None:
             remote_name = "origin"
 
-        cmd = ["push", remote_name]
+        cmd = ["push"]
+        if force:
+            cmd.append('-f')
+
+        cmd.append(remote_name)
+
         if branch:
             cmd.append(branch)
 
         if push_tags:
-            self.push_tag(push_tags, remote_name)
+            self.push_tag(push_tags, remote_name, force=force)
 
         return self.git_go(cmd, cwd=self.path)
 
-    def push_tag(self, tag, remote_name=None):
+    def push_tag(self, tag, remote_name=None, force=False):
 
         if remote_name is None:
             remote_name = "origin"
-        t_cmd = ['push', remote_name, tag]
 
-        return self.git_go(t_cmd, cwd=self.path)
+        cmd = ['push']
+        if force:
+            cmd.append('-f')
+        cmd.append(remote_name)
+        cmd.append(tag)
+
+        return self.git_go(cmd, cwd=self.path)
 
 
-    def merge(self, to_branch, from_branch, strategy=None):
+    def merge(self, from_branch, to_branch, strategy=None):
 
 
         if strategy is None:
@@ -320,7 +331,6 @@ class Repo(object):
             raise IOError(message)
 
         self.checkout(to_branch)
-        cmd = ["merge", from_branch]
         return self.git_go(cmd, cwd=self.path)
 
     def add_all(self):
