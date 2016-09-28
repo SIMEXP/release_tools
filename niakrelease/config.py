@@ -39,6 +39,8 @@ if DEBUG:
     USER = getpass.getuser()
 else:
     ROOT = "/niak"
+    USER = "simexp"
+
 
 class DOCKER:
     """
@@ -52,17 +54,14 @@ class TARGET:
     """
         Target config
     """
-    if DEBUG:
-        URL = "https://github.com/poquirion/niak_target.git"
-    else:
-        URL = "https://github.com/simexp/niak_target.git"
+    URL = "https://github.com/{0}/niak_target.git".format(USER)
 
     WORK_DIR = "{}/work/target".format(ROOT)
     PATH = "{}/niak_target".format(ROOT)
     RESULT_DIR = os.path.join(WORK_DIR, "result")  # Niak default output
     # TAG_NAME is typically "X.Y.Z"
     LOG_PATH = "{}/result/logs".format(WORK_DIR)
-    TAG_SUFFIX = "aa"
+    TAG_SUFFIX = "ac"
 
 
 class NIAK:
@@ -73,16 +72,17 @@ class NIAK:
     REPO = "niak"
     HASH = ""
     PATH = "{}/niak".format(ROOT)
-    if DEBUG:
-        URL = "https://github.com/poquirion/niak.git"
-    else:
-        URL = "https://github.com/simexp/niak.git"
+
+    URL = "https://github.com/{0}/niak.git".format(USER)
+
     RELEASE_BRANCH = "niak-boss"
+    # RELEASE_BRANCH = "master"
     RELEASE_FROM_BRANCH = "master"
+    # RELEASE_FROM_BRANCH = "issue228"
     RELEASE_FROM_COMMIT = None  # If None will release from tip
 
     # RELEASE_BRANCH = ""
-    TAG_NAME = "v0.16.0"
+    TAG_NAME = "v0.17.0"
     # release Name
     DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
     WORK_DIR = "{}/work/niak-{}".format(ROOT, TAG_NAME)
@@ -95,12 +95,9 @@ class PSOM:
     PSOM config
     """
     PATH = "{}/psom".format(ROOT)
-    if DEBUG:
-        URL = "https://github.com/poquirion/psom.git"
-    else:
-        URL = "https://github.com/simexp/psom.git"
+    URL = "https://github.com/{0}/psom.git".format(USER)
 # URL = "https://github.com/poquirion/psom.git"
-    RELEASE_TAG = "v2.0.1-alpha"
+    RELEASE_TAG = "v2.0.2"
 
 
 class BCT:

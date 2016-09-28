@@ -113,16 +113,16 @@ To release only a new target
     parsed = parser.parse_args(args)
 
     new_target = niakr.process.TargetRelease(dry_run=parsed.dry_run,
-                                       niak_path=parsed.niak_path,
-                                       niak_url=parsed.niak_url,
-                                       target_path=parsed.target_path,
-                                       target_suffix=parsed.target_suffix,
-                                       release_target=parsed.release_target,
-                                       psom_path=parsed.psom_path,
-                                       psom_url=parsed.psom_url,
-                                       push_niak_release=parsed.push_niak_release,
-                                       force_niak_release=parsed.force_niak_release,
-                                       recompute_target=parsed.recompute_target)
+                                             niak_path=parsed.niak_path,
+                                             niak_url=parsed.niak_url,
+                                             target_path=parsed.target_path,
+                                             target_suffix=parsed.target_suffix,
+                                             release_target=parsed.release_target,
+                                             psom_path=parsed.psom_path,
+                                             psom_url=parsed.psom_url,
+                                             new_niak_release=parsed.push_niak_release,
+                                             force_niak_release=parsed.force_niak_release,
+                                             recompute_target=parsed.recompute_target)
 
     new_target.start()
 

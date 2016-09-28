@@ -379,7 +379,7 @@ class TargetRelease(object):
     def __init__(self, target_path=None, target_suffix=None, niak_path=None,
                  niak_tag=None, dry_run=False, recompute_target=False,
                  result_dir=None, release_target=True, niak_url=None, psom_path=None,
-                 psom_url=None, push_niak_release=False, niak_release_from_branch=None,
+                 psom_url=None, new_niak_release=False, niak_release_from_branch=None,
                  niak_release_from_commit=None, force_niak_release=False):
 
 
@@ -399,8 +399,10 @@ class TargetRelease(object):
         # Where the new target is computed
         self.result_dir = result_dir if result_dir else config.TARGET.RESULT_DIR
 
+        # Will release on this branch
         self.niak_release_branch = niak_release_branch if niak_release_branch else config.NIAK.RELEASE_BRANCH
 
+        # Will release a target wit a tag
         self.release_target = release_target
 
         self.recompute_target = recompute_target
@@ -420,7 +422,8 @@ class TargetRelease(object):
         self.niak_release_commit = niak_release_from_commit if \
             niak_release_from_commit else config.NIAK.RELEASE_FROM_COMMIT
 
-        self.push_niak_release = push_niak_release
+        # Will release a new niak version with a tag
+        self.new_niak_release = new_niak_release
         self.force_niak_release = force_niak_release
 
 
@@ -549,7 +552,10 @@ class TargetRelease(object):
         self._finaly()
 
     def repo_prerelease_setup(self, branch=None, sha1=None):
-        """ Move the repo to the revision to be released.
+        """
+        TODO: set origin url "git remote set-url" to the config USER (maybe put owner)
+        SET local "form" and "release" branch to tip of remote branch
+        Move the repo to the revision to be released.
             Targets can only be released at the tip of a branch
             Niak can be released at any revision (branch and commit)
         :param branch: The name of the dev branch to release from
@@ -693,29 +699,32 @@ class TargetRelease(object):
         """
 
         niak_gb_vars_path = os.path.join(self.niak_path, self.NIAK_GB_VARS)
-        docker_file = os.path.join(self.niak_path, config.DOCKER.FILE)
+        # docker_file = os.path.join(self.niak_path, config.DOCKER.FILE)
         commit_message = "new niak release"
         # Update version
         with open(niak_gb_vars_path, "r") as fp:
             rfp = fp.read()
-            fout = re.sub("gb_niak_version = .*",
-                          "gb_niak_version = \'{}\';".format(self.niak_tag), rfp)
+            if self.new_niak_release:
+                fout = re.sub("gb_niak_version = .*",
+                              "gb_niak_version = \'{}\';".format(self.niak_tag), rfp)
+                commit_message += " Version {0}".format(self.niak_tag)
             if self.release_target:
+
                     fout = re.sub("gb_niak_target_test = .*",
                                   "gb_niak_target_test = \'{}\';".format(self.target_suffix), fout)
 
-            commit_message = "Updated target version to {0}".format(self.target_suffix)
+                commit_message += " Target {0}".format(self.target_suffix)
 
         with open(niak_gb_vars_path, "w") as fp:
             fp.write(fout)
 
-        with open(docker_file, "r") as fp:
-            fout = re.sub("ENV {}.*".format(config.NIAK.VERSION_ENV_VAR),
-                          "ENV {0} {1}".format(config.NIAK.VERSION_ENV_VAR,
-                                               self.niak_tag), fp.read())
+        # with open(docker_file, "r") as fp:
+        #     fout = re.sub("ENV {}.*".format(config.NIAK.VERSION_ENV_VAR),
+        #                   "ENV {0} {1}".format(config.NIAK.VERSION_ENV_VAR,
+        #                                        self.niak_tag), fp.read())
 
-        with open(docker_file, "w") as fp:
-            fp.write(fout)
+        # with open(docker_file, "w") as fp:
+        #     fp.write(fout)
 
         self._commit(self.niak_path, commit_message,
                      files=[self.NIAK_GB_VARS, config.DOCKER.FILE],
@@ -741,7 +750,7 @@ class TargetRelease(object):
 
             self._merge(self.niak_repo, self.TMP_BRANCH, self.niak_release_branch, tag=self.niak_tag)
 
-            if self.push_niak_release:
+            if self.new_niak_release:
                 self._push(self.niak_path, push_tag=self.niak_tag, branch=self.niak_release_branch,force=True)
 
             if self.release_target:
@@ -766,7 +775,7 @@ class TargetRelease(object):
                                       self.target.zip_path, self.target.zip_name, prerelease=False,
                                       body="Target release only")
 
-            if self.push_niak_release:
+            if self.new_niak_release:
                     # if self.force_niak_release:
                     # Delete the release if it already exist and repush it.
                     print('removing older asset with similar name')

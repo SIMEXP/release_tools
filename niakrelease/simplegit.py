@@ -148,7 +148,7 @@ class Repo(object):
         p = subprocess.Popen(self.which_git+cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # p = subprocess.Popen(self.which_git+cmd, cwd=cwd)
 
-        # Put logs in threat to avoid dead lock
+        # Put logs in thread to avoid dead lock
         stdout_queue = queue.Queue()
         stderr_queue = queue.Queue()
         stdout_monitor_thread = threading.Thread(
