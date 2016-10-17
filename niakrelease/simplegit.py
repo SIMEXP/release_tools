@@ -324,7 +324,7 @@ class Repo(object):
         if strategy is None:
             cmd = ["merge", from_branch]
         elif strategy in self.__merge_strategy:
-            cmd = ["merge", strategy, from_branch]
+            cmd = ["merge", "-s", strategy, from_branch]
         else:
             message = ("Merge strategy \"{0}\" not supported, use {1}"
                        .fromat(strategy, self.__merge_strategy))

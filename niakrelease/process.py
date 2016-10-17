@@ -703,17 +703,17 @@ class TargetRelease(object):
         commit_message = "new niak release"
         # Update version
         with open(niak_gb_vars_path, "r") as fp:
-            rfp = fp.read()
+            fout = fp.read()
             if self.new_niak_release:
                 fout = re.sub("gb_niak_version = .*",
-                              "gb_niak_version = \'{}\';".format(self.niak_tag), rfp)
+                              "gb_niak_version = \'{0}\';".format(self.niak_tag), fout)
                 commit_message += " Version {0}".format(self.niak_tag)
             if self.release_target:
 
                     fout = re.sub("gb_niak_target_test = .*",
-                                  "gb_niak_target_test = \'{}\';".format(self.target_suffix), fout)
+                                  "gb_niak_target_test = \'{0}\';".format(self.target_suffix), fout)
 
-                commit_message += " Target {0}".format(self.target_suffix)
+                    commit_message += " Target \'{0}\'".format(self.target_suffix)
 
         with open(niak_gb_vars_path, "w") as fp:
             fp.write(fout)
