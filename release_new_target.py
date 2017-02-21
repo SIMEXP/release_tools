@@ -51,19 +51,26 @@ def main(args=None):
 
     example = """Example:
 A Typical release including a new target and an new Niak release would be
-    > ./release_new_target.py -rn
+    > ./release_new_target.py commit_hash -rn
 
 To release only a new niak
-    > ./release_new_target.py -n
+    > ./release_new_target.py commit_hash -n
 
 To release only a new target
-    > ./release_new_target.py -r
+    > ./release_new_target.py commit_hash -r
                """
 
     parser = argparse.ArgumentParser(description='Create and release new Niak target.', epilog=example,
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--branch', '-b', help='the niak branch where to put the version')
+    parser.add_argument('from_commit', help='the niak commit from which to start the release')
+
+    parser.add_argument('--branch', '-b', help='the niak branch where to put the version',
+                        default=niakr.config.NIAK.RELEASE_BRANCH)
+
+    parser.add_argument('--from_branch', help='the niak branch from which to start the release',
+                        default=niakr.config.NIAK.RELEASE_FROM_BRANCH)
+
 
     parser.add_argument('--dry_run', '-d', action='store_true', help='no commit no push!')
 
@@ -72,6 +79,9 @@ To release only a new target
 
     parser.add_argument('--niak_url', '-O', help='the url to the Niak git repo',
                         default=niakr.config.NIAK.URL)
+
+    parser.add_argument('--niak_tag', help='Niak release TAG',
+                        default=niakr.config.NIAK.TAG_NAME)
 
     parser.add_argument('--psom_path', '-P', help='the path to the PSOM repo',
                         default=niakr.config.PSOM.PATH)
@@ -99,13 +109,14 @@ To release only a new target
     parser.add_argument('--target_path', '-T', help='the path to the target ',
                         default=niakr.config.TARGET.PATH)
 
-    parser.add_argument('--target_url', '-U', help='the url to the target',
-                        default=niakr.config.TARGET.URL)
+    parser.add_argument('--target_work_dir', help='the path to the target working/tmp directory',
+                        default=niakr.config.TARGET.WORK_DIR)
+
+    parser.add_argument('--target_results', help='the path to the target results',
+                        default=niakr.config.TARGET.PATH)
 
     parser.add_argument('--target_suffix', '-G', help='the tag name of the target ',
                         default=niakr.config.TARGET.TAG_SUFFIX)
-
-
 
 
 
@@ -122,7 +133,13 @@ To release only a new target
                                              psom_url=parsed.psom_url,
                                              new_niak_release=parsed.push_niak_release,
                                              force_niak_release=parsed.force_niak_release,
-                                             recompute_target=parsed.recompute_target)
+                                             recompute_target=parsed.recompute_target,
+                                             niak_release_branch=parsed.branch,
+                                             result_dir=parsed.target_results,
+                                             target_work_dir=parsed.target_work_dir,
+                                             niak_tag=parsed.niak_tag,
+                                             niak_release_from_branch=parsed.from_branch,
+                                             niak_release_from_commit=parsed.from_commit)
 
     new_target.start()
 
