@@ -23,23 +23,36 @@ THE SOFTWARE.
 # @TODO Write doc!
 __author__ = 'Pierre-Olivier Quirion <pioliqui@gmail.com>'
 
-
-
-import logging
+import getpass
 import os.path
 
-DEBUG = False
 
 def to_full_dir_path(path):
     return os.path.dirname(os.path.abspath(os.path.expandvars(os.path.expanduser(path))))
 
-if DEBUG:
-    import getpass
-    ROOT = "/niak/niak_debug"
-    USER = getpass.getuser()
-else:
-    ROOT = "/niak"
-    USER = "simexp"
+class Repo():
+
+    DEBUG = False
+
+    @property
+    def ROOT(self):
+        if self.DEBUG:
+            return "/niak/niak_debug"
+        else:
+            return "/niak"
+    @property
+    def USER(self):
+        if self.DEBUG:
+            return getpass.getuser()
+        else:
+            return "simexp"
+
+    @property
+    def OWNER(self):
+        if self.DEBUG:
+            return "poquirion"
+        else:
+            return "simexp"
 
 
 class DOCKER:
@@ -54,53 +67,50 @@ class TARGET:
     """
         Target config
     """
-    URL = "https://github.com/{0}/niak_target.git".format(USER)
-
-    WORK_DIR = "{}/work/target".format(ROOT)
-    PATH = "{}/niak_target".format(ROOT)
-    RESULT_DIR = os.path.join(WORK_DIR, "result")  # Niak default output
-    # TAG_NAME is typically "X.Y.Z"
-    LOG_PATH = "{}/result/logs".format(WORK_DIR)
-    TAG_SUFFIX = "ae"
+    def __init__(self):
+        self.URL = "https://github.com/{0}/niak_target.git".format(Repo().USER)
+        self.WORK_DIR = "{}/work/target".format(Repo().ROOT)
+        self.PATH = "{}/niak_target".format(Repo().ROOT)
+        self.RESULT_DIR = os.path.join(self.WORK_DIR, "result")  # Niak default output
+        self.LOG_PATH = "{}/result/logs".format(self.WORK_DIR)
+        self.TAG_SUFFIX = "ae"
 
 
 class NIAK:
     """
     Niak release Config
     """
-    # Hash that will be used for the release
-    REPO = "niak"
-    HASH = ""
-    PATH = "{}/niak".format(ROOT)
+    def __init__(self):
+        # Hash that will be used for the release
+        self.REPO = "niak"
+        self.HASH = ""
+        self.PATH = "{}/niak".format(Repo().ROOT)
 
-    URL = "https://github.com/{0}/niak.git".format(USER)
+        self.URL = "https://github.com/{0}/niak.git".format(Repo().USER)
 
-    # RELEASE_BRANCH = "niak-boss"
-    RELEASE_BRANCH = "master"
-    # RELEASE_BRANCH = "subtype"
-    RELEASE_FROM_BRANCH = "master"
-    # RELEASE_FROM_BRANCH = "subtype"
-    # RELEASE_FROM_BRANCH = "issue228"
-    RELEASE_FROM_COMMIT = None  # If None will release from tip
+        self.RELEASE_BRANCH = "devel"
+        self.RELEASE_FROM_BRANCH = "devel"
+        self.RELEASE_FROM_COMMIT = None  # If None will release from tip
 
-    # RELEASE_BRANCH = ""
-    # TAG_NAME = "v0.17.0"
-    TAG_NAME = "dev"
-    # release Name
-    DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
-    WORK_DIR = "{}/work/niak-{}".format(ROOT, TAG_NAME)
+        # RELEASE_BRANCH = ""
+        self.TAG_NAME = "v0.18.0"
+        # self.TAG_NAME = "dev"
+        # release Name
+        self.DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
+        self.WORK_DIR = "{}/work/niak-{}".format(Repo().ROOT, self.TAG_NAME)
 
-    VERSION_ENV_VAR = "NIAK_VERSION"
+        self.VERSION_ENV_VAR = "NIAK_VERSION"
 
 
 class PSOM:
     """
     PSOM config
     """
-    PATH = "{}/psom".format(ROOT)
-    URL = "https://github.com/{0}/psom.git".format(USER)
-# URL = "https://github.com/poquirion/psom.git"
-    RELEASE_TAG = "v2.2.2"
+    def __init__(self):
+        self.PATH = "{}/psom".format(Repo().ROOT)
+        self.URL = "https://github.com/{0}/psom.git".format(Repo().USER)
+    # URL = "https://github.com/poquirion/psom.git"
+        self.RELEASE_TAG = "v2.2.2"
 
 
 class BCT:
@@ -116,10 +126,12 @@ class GIT:
     Do not forget to setup you git token! 
     You get one on git hub and set it as en env var in your .bashrc.
     """
-    API = "https://api.github.com"
-    UPLOAD_API = "https://uploads.github.com"
-    TOKEN = os.getenv("GIT_TOKEN")
-    if DEBUG:
-        OWNER = "poquirion"
-    else:
-        OWNER = "simexp"
+    def __init__(self):
+        self.API = "https://api.github.com"
+        self.UPLOAD_API = "https://uploads.github.com"
+        self.TOKEN = os.getenv("GIT_TOKEN")
+        self.OWNER = Repo().OWNER
+
+
+if __name__ == '__main__':
+    print(Repo())

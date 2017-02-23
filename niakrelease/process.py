@@ -25,14 +25,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-# @TODO Write doc!
-# @TODO Remove hard coded path and reference to config inside methods
-# @TODO Make the exception - crash system more robust (except, finally)
+# TODO Write doc!
+# TODO Remove hard coded path and reference to config inside methods
+# TODO Remove all call to config.py
+# TODO Make the exception - crash system more robust (except, finally)
 __author__ = 'Pierre-Olivier Quirion <poq@criugm.qc.ca>'
 
-from distutils.version import LooseVersion
 import io
-import simplejson as json
 import logging
 import os
 import queue
@@ -46,6 +45,9 @@ import threading
 import time
 import urllib.request
 import zipfile
+
+import requests
+import simplejson as json
 
 # TODO Add these in setup.py
 try:
@@ -249,8 +251,7 @@ def delete_git_asset(repo_owner, repo_name, tag, asset_name, raise_on_error=Fals
     :param asset_name: the asset name
     :return:
     """
-    import requests
-    GIT = config.GIT
+    git = config.GIT()
 
     # if raise_on_error:
     #     class ERROR_THAT_DOES_NOT_EXIST(Exception):
@@ -261,8 +262,8 @@ def delete_git_asset(repo_owner, repo_name, tag, asset_name, raise_on_error=Fals
 
 
     headers = {"Accept": "application/vnd.github.manifold-preview",
-                "Authorization": "token {}".format(config.GIT.TOKEN)}
-    url = "{api}/repos/{owner}/{repo}/releases".format(api=GIT.API, owner=repo_owner, repo=repo_name)
+                "Authorization": "token {}".format(git.TOKEN)}
+    url = "{api}/repos/{owner}/{repo}/releases".format(api=git.API, owner=repo_owner, repo=repo_name)
 
     get = urllib.request.Request(url=url)
 
@@ -280,7 +281,7 @@ def delete_git_asset(repo_owner, repo_name, tag, asset_name, raise_on_error=Fals
         return
 
     del_url = "{api}/repos/{owner}/{repo}/releases/assets/{asset_id}"\
-        .format(api=GIT.API, owner=repo_owner, repo=repo_name, asset_id=to_be_deleted_id)
+        .format(api=git.API, owner=repo_owner, repo=repo_name, asset_id=to_be_deleted_id)
     requests.delete(url=del_url, headers=headers)
 
 def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name
@@ -296,14 +297,14 @@ def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name
 
     """
     logging.info("Preparing {} to {}/{} tag {}".format(file_path, repo_owner, repo_name, tag))
-    GIT = config.GIT
+    git = config.GIT()
 
     headers = {"Accept": "application/vnd.github.manifold-preview",
-                "Authorization": "token {}".format(GIT.TOKEN)}
+                "Authorization": "token {}".format(git.TOKEN)}
 
 
     # find the github  release id using the release tag
-    url = "{api}/repos/{owner}/{repo}/releases".format(api=GIT.API, owner=repo_owner, repo=repo_name)
+    url = "{api}/repos/{owner}/{repo}/releases".format(api=git.API, owner=repo_owner, repo=repo_name)
     get = urllib.request.Request(url=url)
 
     with urllib.request.urlopen(url=get) as fp:
@@ -352,8 +353,10 @@ def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name
         #
         logging.info("url:\n{}\nheaders:\n{}".format(upload_url, headers))
         logging.info("uploading {} to github".format(file_path))
+        logging.info("Be patient, this could take a while!")
         with urllib.request.urlopen(url=post) as reply:
                 return json.loads(reply.read().decode('utf-8'))
+        logging.info("Uploading sucessfull")
 
 
 class TargetRelease(object):
@@ -387,7 +390,10 @@ class TargetRelease(object):
         # , niak_release_commit=None):
 
         # the hash of the commit to release from
-        self.niak_release_commit = niak_release_from_commit
+        if len(niak_release_from_commit) >= 7:
+            self.niak_release_commit = niak_release_from_commit
+        else:
+            raise IOError('Commit hash needs at least 7 alphanumeric entries: {}'.format(niak_release_from_commit))
 
         # target tag name
         self.target_path = target_path
@@ -412,15 +418,18 @@ class TargetRelease(object):
 
         self.dry_run = dry_run
 
-        # the name of the release
-        self.niak_tag = niak_tag
-
         # release from branch release
         self.niak_release_from_branch = niak_release_from_branch
 
         # Will release a new niak version with a tag
         self.new_niak_release = new_niak_release
         self.force_niak_release = force_niak_release
+
+        # the name of the release
+        if re.match('v[0-9]+\.[0-9]+.[0-9]+', niak_tag):
+            self.niak_tag = niak_tag
+        elif self.new_niak_release:
+            IOError('{} not a valid niak release tag'.format(self.niak_tag))
 
 
         self._sanity_check()
@@ -429,7 +438,7 @@ class TargetRelease(object):
 
         self.niak_repo.branch(self.TMP_BRANCH, delete=True)
 
-        self._log_path = config.TARGET.LOG_PATH
+        self._log_path = config.TARGET().LOG_PATH
 
         self.target_suffix = target_suffix
 
@@ -470,7 +479,6 @@ class TargetRelease(object):
                 logging.info('cleaning niak directory')
                 shutil.rmtree(self.niak_path, ignore_errors=True)
                 logging.info('cloning niak')
-                # git.Repo.clone_from(self.niak_url, self.niak_path)
                 simplegit.clone(self.niak_url, self.niak_path)
 
             else:
@@ -495,20 +503,20 @@ class TargetRelease(object):
 
     def start(self):
 
-        self.repo_prerelease_setup(branch=self.niak_release_from_branch
-                                   , sha1=self.niak_release_commit)
+        # DO setup and sanity check
+        self.repo_prerelease_setup(sha1=self.niak_release_commit, branch=self.niak_release_from_branch)
 
         if self.release_target:
             if self.recompute_target:
                 self.delete_target_log()
             self.target = self._build()
             pass
-        # if self.niak_release_branch:
+
         self._release()
 
         self._finaly()
 
-    def repo_prerelease_setup(self, branch=None, sha1=None):
+    def repo_prerelease_setup(self, sha1, branch=None, origin='origin', remote='remote'):
         """
         TODO: set origin url "git remote set-url" to the config USER (maybe put owner)
         SET local "form" and "release" branch to tip of remote branch
@@ -518,30 +526,36 @@ class TargetRelease(object):
         :param branch: The name of the dev branch to release from
         :return:
         """
+        err_message = ("To release a target, the sha1 ref must be at "
+             "the tip a a branch sha1 {} is not in branch {} "
+             .format(sha1, branch))
 
+        # Crash if the hash is not is the repo
+
+        self.niak_repo.checkout("origin/master", force=True)
+        self.niak_repo.branch(name=branch, delete=True)
+        self.niak_repo.fetch()
+        self.niak_repo.fail_on_error = True
+        self.niak_repo.checkout(sha1, force=True)
+        self.niak_repo.fail_on_error = False
         if self.release_target:
             if branch is None:
                 raise IOError("You have to release target from a specific branch")
-            if sha1 is not None:
-                ref_dico = self.niak_repo.show_ref()
-                if sha1 in ref_dico:
-                    for ref in ref_dico[sha1]:
-                        if branch in ref:
-                            # ALL set!
-                            break
-                        #  NO
-                        m = ("To release a target, the sha1 ref must be at "
-                             "the tip a a branch sha1 {} is not in branch {} "
-                             .format(sha1, branch))
-                        raise IOError(m)
-            self.niak_repo.checkout(branch, force=True)
-        else:
-            if sha1 is not None:
-                # Releasing form hash, the release_from_branch will not be updated
-                self.niak_repo.checkout(sha1, force=True)
-            else:
-                self.niak_repo.checkout(branch, force=True)
+            ref_dico = {k[0:len(sha1)]: v for k, v in self.niak_repo.show_ref().items()}
+            if sha1 in ref_dico:
+                pass_test = False
+                for ref in ref_dico[sha1]:
+                    br = ref.split('/')
+                    if origin in br[-2] and remote in br[-3] and branch in br[-1]:
+                        pass_test = True
+                        break
+                if pass_test:
+                    self.niak_repo.branch(branch, checkout=True)
+                else:
+                    raise IOError(err_message)
 
+            else:
+                raise IOError(err_message)
 
     def delete_target_log(self):
         """ Delete the target logs so it recomputes
@@ -563,11 +577,11 @@ class TargetRelease(object):
         """
         target = TargetBuilder(self.work_dir, self.niak_path, self.result_dir, self.target_tag_w_prefix
                                , error_form_log=True)
-        # DEBUG !!!
         ret_val = target.run()
         happiness = input("Are you happy with the target?Y/[N]")
         logging.info("look at {}/logs for more info".format(self.work_dir))
 
+        # DEBUG !!!
         # if ret_val != 0 or happiness != 'Y':
         #     raise Error("The target was not computed properly")
         return target
@@ -624,13 +638,13 @@ class TargetRelease(object):
         with open(niak_gb_vars_path, "r") as fp:
             fout = fp.read()
             if self.new_niak_release:
-                fout = re.sub("gb_niak_version = .*",
-                              "gb_niak_version = \'{0}\';".format(self.niak_tag), fout)
+                fout = re.sub("GB_NIAK.version = .*",
+                              "GB_NIAK.version = \'{0}\';".format(self.niak_tag), fout)
                 commit_message += " Version {0}".format(self.niak_tag)
             if self.release_target:
 
-                    fout = re.sub("gb_niak_target_test = .*",
-                                  "gb_niak_target_test = \'{0}\';".format(self.target_suffix), fout)
+                    fout = re.sub("GB_NIAK.target_test.*=.*",
+                                  "GB_NIAK.target_test = \'{0}\';".format(self.target_suffix), fout)
 
                     commit_message += " Target \'{0}\'".format(self.target_suffix)
 
@@ -638,8 +652,8 @@ class TargetRelease(object):
             fp.write(fout)
 
         # with open(docker_file, "r") as fp:
-        #     fout = re.sub("ENV {}.*".format(config.NIAK.VERSION_ENV_VAR),
-        #                   "ENV {0} {1}".format(config.NIAK.VERSION_ENV_VAR,
+        #     fout = re.sub("ENV {}.*".format(niak.VERSION_ENV_VAR),
+        #                   "ENV {0} {1}".format(niak.VERSION_ENV_VAR,
         #                                        self.niak_tag), fp.read())
 
         # with open(docker_file, "w") as fp:
@@ -664,6 +678,8 @@ class TargetRelease(object):
         except BaseException as e:
             self._cleanup()
             raise e
+        git = config.GIT()
+        niak = config.NIAK()
 
         if not self.dry_run:
 
@@ -688,24 +704,26 @@ class TargetRelease(object):
                 niak_w_dependency_zip_path = self._build_niak_with_dependecy()
 
             if self.release_target:
-                delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
+                delete_git_asset(git.OWNER, niak.REPO,
                                  self.target_tag_w_prefix, self.target.zip_name)
 
-                upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
+                logging.info('pushing new target')
+                upload_release_to_git(git.OWNER, niak.REPO,
                                       self.target_tag_w_prefix,
-                                      self.target.zip_path, self.target.zip_name, prerelease=False,
+                                      self.target.zip_path, self.target.zip_name,
+                                      prerelease=True,
                                       body="Target release only")
 
             if self.new_niak_release:
                     # if self.force_niak_release:
                     # Delete the release if it already exist and repush it.
                     logging.info('removing older asset with similar name')
-                    delete_git_asset(config.GIT.OWNER, config.NIAK.REPO,
-                                     self.niak_tag, config.NIAK.DEPENDENCY_RELEASE)
+                    delete_git_asset(git.OWNER, niak.REPO,
+                                     self.niak_tag, niak.DEPENDENCY_RELEASE)
                     logging.info('pushing new niak release')
-                    upload_release_to_git(config.GIT.OWNER, config.NIAK.REPO,
+                    upload_release_to_git(git.OWNER, niak.REPO,
                                           self.niak_tag, niak_w_dependency_zip_path
-                                          , config.NIAK.DEPENDENCY_RELEASE)
+                                          , niak.DEPENDENCY_RELEASE, prerelease=False)
 
 
 
@@ -719,35 +737,36 @@ class TargetRelease(object):
         Take the released version and bundle it with psom and BCT in a zip file
         :return: the path to the zip file
         """
-
-        if os.path.isdir(config.NIAK.WORK_DIR):
-            shutil.rmtree(config.NIAK.WORK_DIR)
+        niak = config.NIAK()
+        psom = config.PSOM()
+        if os.path.isdir(niak.WORK_DIR):
+            shutil.rmtree(niak.WORK_DIR)
         ## HERE REFREACTOR!!!
         # Niak
-        shutil.copytree(self.niak_path, config.NIAK.WORK_DIR)
-        n_repo = simplegit.Repo(config.NIAK.WORK_DIR)
+        shutil.copytree(self.niak_path, niak.WORK_DIR)
+        n_repo = simplegit.Repo(niak.WORK_DIR)
         n_repo.checkout(self.niak_release_branch)
-        shutil.rmtree(config.NIAK.WORK_DIR+"/.git")
+        shutil.rmtree(niak.WORK_DIR+"/.git")
         # PSOM
         p_repo = simplegit.Repo(self.psom_path)
-        p_repo.checkout(config.PSOM.RELEASE_TAG)
-        shutil.copytree(config.PSOM.PATH, config.NIAK.WORK_DIR+"/extensions/psom-{}".format(config.PSOM.RELEASE_TAG))
-        shutil.rmtree(config.NIAK.WORK_DIR+"/extensions/psom-{}/.git".format(config.PSOM.RELEASE_TAG))
+        p_repo.checkout(psom.RELEASE_TAG)
+        shutil.copytree(psom.PATH, niak.WORK_DIR+"/extensions/psom-{}".format(psom.RELEASE_TAG))
+        shutil.rmtree(niak.WORK_DIR+"/extensions/psom-{}/.git".format(psom.RELEASE_TAG))
 
         # BCT
         logging.info('download BCT form source and copying')
         BCTZIP = urllib.request.urlopen(config.BCT.url)
         with zipfile.ZipFile(io.BytesIO(BCTZIP.read())) as z:
-            z.extractall(config.NIAK.WORK_DIR+"/extensions/BCT")
+            z.extractall(niak.WORK_DIR+"/extensions/BCT")
 
         # the base_dir funky stuff is the way to include the leading directory in zip...
         logging.info('creating niak w denpencency zip file')
-        filename, ext = os.path.splitext(config.NIAK.DEPENDENCY_RELEASE)
-        shutil.make_archive(config.NIAK.WORK_DIR+"/../"+filename,
-                            ext[1:], root_dir=config.NIAK.WORK_DIR+"/../",
+        filename, ext = os.path.splitext(niak.DEPENDENCY_RELEASE)
+        shutil.make_archive(niak.WORK_DIR+"/../"+filename,
+                            ext[1:], root_dir=niak.WORK_DIR+"/../",
                             base_dir="niak-{}".format(self.niak_tag))
 
-        return config.NIAK.WORK_DIR+"/../"+config.NIAK.DEPENDENCY_RELEASE
+        return niak.WORK_DIR+"/../"+niak.DEPENDENCY_RELEASE
 
     def _merge(self, repo, branch1, branch2, tag=None):
         """
@@ -806,7 +825,7 @@ class TargetBuilder(Runner):
     MT_PASSWD = [MT, "/etc/passwd:/etc/passwd"]
     MT_X11 = [MT, "/tmp/.X11-unix:/tmp/.X11-unix"]
     MT_HOME = [MT, "{0}:{0}".format(os.getenv("HOME"))]
-    MT_ROOT = [MT, "{0}:{0}".format(config.ROOT)]
+    MT_ROOT = [MT, "{0}:{0}".format(config.Repo().ROOT)]
     ENV_DISPLAY = ["-e", "DISPLAY=unix$DISPLAY"]
     USER = ["--user", str(os.getuid())]
     IMAGE = [config.DOCKER.IMAGE]
@@ -819,6 +838,7 @@ class TargetBuilder(Runner):
         self.niak_path = niak_path
         self.work_dir = work_dir
         self.result_dir = result_dir
+
         self.tag_name = tag_name
 
         if not os.path.isdir(self.work_dir):
@@ -833,8 +853,9 @@ class TargetBuilder(Runner):
         # Only builds the target
         cmd_line = ['/bin/bash',  '-lic',
                     "cd {0}; octave "
-                    "--eval \"{1};opt = struct(); path_test = struct() ; "
-                    "opt.flag_target=true ;niak_test_all(path_test,opt);\""
+                    "--eval \"{1};opt = struct(); path_test = struct()"
+                    ";opt.flag_target=true;opt.psom.gb_psom_max_queued=6"
+                    ";niak_test_all(path_test,opt);\""
                     .format(self.work_dir, self.load_niak)]
 
         # convoluted docker command

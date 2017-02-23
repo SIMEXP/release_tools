@@ -63,31 +63,44 @@ To release only a new target
     parser = argparse.ArgumentParser(description='Create and release new Niak target.', epilog=example,
                                      formatter_class=argparse.RawTextHelpFormatter)
 
+    partial_parse = argparse.ArgumentParser(description='Create and release new Niak target.', epilog=example,
+                                     formatter_class=argparse.RawTextHelpFormatter, add_help=False)
+
+    parser.add_argument('--debug', help='run the release tool in debug mode', action='store_true')
+    partial_parse.add_argument('--debug', help='run the release tool in debug mode', action='store_true')
+
+    # Set debug value first to make sure that default values are right
+    parsed = partial_parse.parse_known_args([e for e in args if e != '-h'], )
+    niakr.config.Repo.DEBUG = parsed[0].debug
+
+    niak = niakr.config.NIAK()
+    psom = niakr.config.PSOM()
+    target = niakr.config.TARGET()
     parser.add_argument('from_commit', help='the niak commit from which to start the release')
 
     parser.add_argument('--branch', '-b', help='the niak branch where to put the version',
-                        default=niakr.config.NIAK.RELEASE_BRANCH)
+                        default=niak.RELEASE_BRANCH)
 
     parser.add_argument('--from_branch', help='the niak branch from which to start the release',
-                        default=niakr.config.NIAK.RELEASE_FROM_BRANCH)
+                        default=niak.RELEASE_FROM_BRANCH)
 
 
     parser.add_argument('--dry_run', '-d', action='store_true', help='no commit no push!')
 
     parser.add_argument('--niak_path', '-N', help='the path to the Niak repo',
-                        default=niakr.config.NIAK.PATH)
+                        default=niak.PATH)
 
     parser.add_argument('--niak_url', '-O', help='the url to the Niak git repo',
-                        default=niakr.config.NIAK.URL)
+                        default=niak.URL)
 
     parser.add_argument('--niak_tag', help='Niak release TAG',
-                        default=niakr.config.NIAK.TAG_NAME)
+                        default=niak.TAG_NAME)
 
     parser.add_argument('--psom_path', '-P', help='the path to the PSOM repo',
-                        default=niakr.config.PSOM.PATH)
+                        default=psom.PATH)
 
     parser.add_argument('--psom_url', '-M', help='the url to the PSOM git repo',
-                        default=niakr.config.PSOM.URL)
+                        default=psom.URL)
 
     parser.add_argument('--release_target', '-r', action='store_true',
                         help='If True, will push the target to the '
@@ -103,25 +116,28 @@ To release only a new target
                         help='Will push a Niak release even if the release '
                              'assets already exist')
 
-    parser.add_argument('--recompute_target', '-R', action='store_true',
-                        help='will recompute target event if already present')
+    parser.add_argument('--no_target_recompute', '-R', action='store_false',
+                        help='will not recompute target event if it is full of error. Useful when debugging')
 
     parser.add_argument('--target_path', '-T', help='the path to the target ',
-                        default=niakr.config.TARGET.PATH)
+                        default=target.PATH)
 
     parser.add_argument('--target_work_dir', help='the path to the target working/tmp directory',
-                        default=niakr.config.TARGET.WORK_DIR)
+                        default=target.WORK_DIR)
 
     parser.add_argument('--target_results', help='the path to the target results',
-                        default=niakr.config.TARGET.PATH)
+                        default=target.RESULT_DIR)
 
     parser.add_argument('--target_suffix', '-G', help='the tag name of the target ',
-                        default=niakr.config.TARGET.TAG_SUFFIX)
+                        default=target.TAG_SUFFIX)
 
 
 
 
     parsed = parser.parse_args(args)
+
+    if parsed.debug:
+        parsed.no_target_recompute = False
 
     new_target = niakr.process.TargetRelease(dry_run=parsed.dry_run,
                                              niak_path=parsed.niak_path,
@@ -133,7 +149,7 @@ To release only a new target
                                              psom_url=parsed.psom_url,
                                              new_niak_release=parsed.push_niak_release,
                                              force_niak_release=parsed.force_niak_release,
-                                             recompute_target=parsed.recompute_target,
+                                             recompute_target=parsed.no_target_recompute,
                                              niak_release_branch=parsed.branch,
                                              result_dir=parsed.target_results,
                                              target_work_dir=parsed.target_work_dir,

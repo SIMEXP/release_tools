@@ -49,11 +49,11 @@ def stderror_handling(func):
         if isinstance(stderr, str):
             stdout = stderr.splitlines()
         for line in stderr:
-            if "warning" in line:
+            if "warning" in line.lower():
                 logging.warning(line)
-            elif "error" in line:
+            elif "error" in line.lower():
                 logging.error(line)
-                did_fail = False
+                did_fail = True
             else:
                 logging.warning(line)
             if self.fail_on_error and did_fail:
@@ -269,6 +269,14 @@ class Repo(object):
         cmd = ["pull", remote_name, branch]
         return self.git_go(cmd, cwd=self.path)
 
+    def fetch(self, remote_name=None):
+
+        if remote_name is None:
+            remote_name = "origin"
+
+        cmd = ["fetch", remote_name]
+        return self.git_go(cmd, cwd=self.path)
+
     def tag(self, name, force=False):
 
         cmd = ["tag", name]
@@ -324,7 +332,7 @@ class Repo(object):
         if strategy is None:
             cmd = ["merge", from_branch]
         elif strategy in self.__merge_strategy:
-            cmd = ["merge", "-s", strategy, from_branch]
+            cmd = ["merge", "-s", 'recursive', '-X', strategy, from_branch]
         else:
             message = ("Merge strategy \"{0}\" not supported, use {1}"
                        .fromat(strategy, self.__merge_strategy))
