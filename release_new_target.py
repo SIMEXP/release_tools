@@ -51,13 +51,13 @@ def main(args=None):
 
     example = """Example:
 A Typical release including a new target and an new Niak release would be
-    > ./release_new_target.py commit_hash -rn
+    > ./release_new_target.py -rn <commit_hash>
 
 To release only a new niak
-    > ./release_new_target.py commit_hash -n
+    > ./release_new_target.py -n <commit_hash>
 
 To release only a new target
-    > ./release_new_target.py commit_hash -r
+    > ./release_new_target.py -r <commit_hash> 
                """
 
     parser = argparse.ArgumentParser(description='Create and release new Niak target.', epilog=example,
@@ -93,7 +93,7 @@ To release only a new target
     parser.add_argument('--niak_url', '-O', help='the url to the Niak git repo',
                         default=niak.URL)
 
-    parser.add_argument('--niak_tag', help='Niak release TAG',
+    parser.add_argument('--niak_version', help='Niak release version',
                         default=niak.TAG_NAME)
 
     parser.add_argument('--psom_path', '-P', help='the path to the PSOM repo',
@@ -153,7 +153,7 @@ To release only a new target
                                              niak_release_branch=parsed.branch,
                                              result_dir=parsed.target_results,
                                              target_work_dir=parsed.target_work_dir,
-                                             niak_tag=parsed.niak_tag,
+                                             niak_tag=parsed.niak_version,
                                              niak_release_from_branch=parsed.from_branch,
                                              niak_release_from_commit=parsed.from_commit)
 

@@ -426,10 +426,10 @@ class TargetRelease(object):
         self.force_niak_release = force_niak_release
 
         # the name of the release
-        if re.match('v[0-9]+\.[0-9]+.[0-9]+', niak_tag):
+        if re.match('v[0-9]+\.[0-9]+.[0-9]+', niak_tag) or niak_tag == 'dev':
             self.niak_tag = niak_tag
         elif self.new_niak_release:
-            IOError('{} not a valid niak release tag'.format(self.niak_tag))
+            raise IOError('{} not a valid niak release version, use vX.X.X or dev'.format(niak_tag))
 
 
         self._sanity_check()

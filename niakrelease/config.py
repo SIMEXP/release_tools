@@ -73,7 +73,7 @@ class TARGET:
         self.PATH = "{}/niak_target".format(Repo().ROOT)
         self.RESULT_DIR = os.path.join(self.WORK_DIR, "result")  # Niak default output
         self.LOG_PATH = "{}/result/logs".format(self.WORK_DIR)
-        self.TAG_SUFFIX = "ae"
+        self.TAG_SUFFIX = "ag"
 
 
 class NIAK:
@@ -93,7 +93,7 @@ class NIAK:
         self.RELEASE_FROM_COMMIT = None  # If None will release from tip
 
         # RELEASE_BRANCH = ""
-        self.TAG_NAME = "v0.18.0"
+        self.TAG_NAME = "v0.18.1"
         # self.TAG_NAME = "dev"
         # release Name
         self.DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
@@ -110,7 +110,7 @@ class PSOM:
         self.PATH = "{}/psom".format(Repo().ROOT)
         self.URL = "https://github.com/{0}/psom.git".format(Repo().USER)
     # URL = "https://github.com/poquirion/psom.git"
-        self.RELEASE_TAG = "v2.2.2"
+        self.RELEASE_TAG = "v2.3.1"
 
 
 class BCT:
