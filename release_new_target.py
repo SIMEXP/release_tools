@@ -78,7 +78,7 @@ To release only a new target
     target = niakr.config.TARGET()
     parser.add_argument('from_commit', help='the niak commit from which to start the release')
 
-    parser.add_argument('--branch', '-b', help='the niak branch where to put the version',
+    parser.add_argument('--to_branch', '-b', help='the niak branch where to put the version',
                         default=niak.RELEASE_BRANCH)
 
     parser.add_argument('--from_branch', help='the niak branch from which to start the release',
@@ -150,7 +150,7 @@ To release only a new target
                                              new_niak_release=parsed.push_niak_release,
                                              force_niak_release=parsed.force_niak_release,
                                              recompute_target=parsed.no_target_recompute,
-                                             niak_release_branch=parsed.branch,
+                                             niak_release_branch=parsed.to_branch,
                                              result_dir=parsed.target_results,
                                              target_work_dir=parsed.target_work_dir,
                                              niak_tag=parsed.niak_version,

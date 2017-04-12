@@ -385,11 +385,6 @@ class TargetRelease(object):
                  psom_url=None, new_niak_release=False, niak_release_from_branch=None,
                  niak_release_from_commit=None, force_niak_release=False, niak_release_branch=None):
 
-        # TODO add a niak_release_from_commit option, right now release can only be done
-        #       from the tip of a the niak_release_from_branch
-        # , niak_release_commit=None):
-
-        # the hash of the commit to release from
         if len(niak_release_from_commit) >= 7:
             self.niak_release_commit = niak_release_from_commit
         else:

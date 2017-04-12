@@ -57,7 +57,7 @@ class Repo():
 
 class DOCKER:
     """
-    Docker Config
+    Docker Config<>
     """
     # Version of octave docker image used
     IMAGE = "simexp/niak_dependency:u12_o4"
@@ -93,8 +93,8 @@ class NIAK:
         self.RELEASE_FROM_COMMIT = None  # If None will release from tip
 
         # RELEASE_BRANCH = ""
-        self.TAG_NAME = "v0.18.1"
-        # self.TAG_NAME = "dev"
+        # self.TAG_NAME = "v0.18.1"
+        self.TAG_NAME = "dev"
         # release Name
         self.DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
         self.WORK_DIR = "{}/work/niak-{}".format(Repo().ROOT, self.TAG_NAME)
@@ -109,7 +109,6 @@ class PSOM:
     def __init__(self):
         self.PATH = "{}/psom".format(Repo().ROOT)
         self.URL = "https://github.com/{0}/psom.git".format(Repo().USER)
-    # URL = "https://github.com/poquirion/psom.git"
         self.RELEASE_TAG = "v2.3.1"
 
 

@@ -21,17 +21,17 @@ PSOM.RELEASE_TAG  = X.X.X # The version of psom used to compute the target
  Then, release a target only :
  ```bash
 cd bin
-./release_new_target.py -r
+./release_new_target.py -r <commit_hash>
  ```
 
  To release a new version of NIAK:
 ```bash
-./release_new_target.py -r
+./release_new_target.py -r <commit_hash>
 ```
 To do both all at once
 
 ```bash
-./release_new_target.py -r -n
+./release_new_target.py -rn <commit_hash>
 ```
 
 One other useful option is `-f`. Let say you have release a NIAK version
@@ -44,11 +44,11 @@ overwite the release with the same tag name, just do:
 
 Also note that new target can only be released from the tip of a branch
 (typically master), while NIAK can be release from any commit in your
-repo using the `NIAK.RELEASE_FROM_COMMIT` option and giving it the value of the 
-long or short (minimum of 7 charaters) git hash:
+repo the `commit_hash` value can be given using its 
+long or short (minimum of 7 charaters) git hash form:
 
-```python
-NIAK.RELEASE_FROM_COMMIT = "a97d465841d910bdb1043066976de9207970e74d"  # IS OK
-NIAK.RELEASE_FROM_COMMIT = "a97d465"  # IS OK TOO
+```
+commit_hash = "a97d465841d910bdb1043066976de9207970e74d"  # IS OK
+commit_hash = "a97d465"  # IS OK TOO
 
 ```
