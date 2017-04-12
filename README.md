@@ -45,9 +45,10 @@ overwite the release with the same tag name, just do:
 Also note that new target can only be released from the tip of a branch
 (typically master), while NIAK can be release from any commit in your
 repo using the `NIAK.RELEASE_FROM_COMMIT` option and giving it the value of the 
-long frm git hash:
+long or short (minimum of 7 charaters) git hash:
+
 ```python
 NIAK.RELEASE_FROM_COMMIT = "a97d465841d910bdb1043066976de9207970e74d"  # IS OK
-NIAK.RELEASE_FROM_COMMIT = "a97d465"  # IS NOT OK
+NIAK.RELEASE_FROM_COMMIT = "a97d465"  # IS OK TOO
 
 ```
