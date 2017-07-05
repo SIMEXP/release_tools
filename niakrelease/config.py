@@ -97,7 +97,7 @@ class NIAK:
         self.TAG_NAME = "dev"
         # release Name
         self.DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
-        self.WORK_DIR = "{}/work/niak-{}".format(Repo().ROOT, self.TAG_NAME)
+        self.WORK_DIR_TEMPLATE = "{}/work/niak-{{}}".format(Repo().ROOT)
 
         self.VERSION_ENV_VAR = "NIAK_VERSION"
 

@@ -250,14 +250,15 @@ class Repo(object):
         cmd.append(reference)
         return self.git_go(cmd, cwd=self.path)
 
-
-    def reset(self, commit, hard=False):
+    def reset(self, commit=None, hard=False, branch=None):
 
         cmd = ["reset"]
         if hard:
             cmd.append("--hard")
         if commit:
             cmd.append(commit)
+        if branch:
+            cmd.append(branch)
         return self.git_go(cmd, cwd=self.path)
 
     def pull(self, branch=None, remote_name=None):
@@ -269,12 +270,17 @@ class Repo(object):
         cmd = ["pull", remote_name, branch]
         return self.git_go(cmd, cwd=self.path)
 
-    def fetch(self, remote_name=None):
+    def fetch(self, remote_name=None, branch=None, tags=False):
 
         if remote_name is None:
             remote_name = "origin"
-
         cmd = ["fetch", remote_name]
+
+        if branch:
+            cmd.append(branch)
+        if tags:
+            cmd.append('--tags')
+
         return self.git_go(cmd, cwd=self.path)
 
     def tag(self, name, force=False):

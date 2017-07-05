@@ -52,3 +52,4 @@ commit_hash = "a97d465841d910bdb1043066976de9207970e74d"  # IS OK
 commit_hash = "a97d465"  # IS OK TOO
 
 ```
+./release_new_target.py -n --from_branch master --to_branch niak-cog --niak_version v1.0.1

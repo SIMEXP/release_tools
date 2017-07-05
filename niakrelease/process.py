@@ -359,6 +359,11 @@ def upload_release_to_git(repo_owner, repo_name, tag, file_path, asset_name
         logging.info("Uploading sucessfull")
 
 
+
+def container_distribution(repo, image_name):
+    pass
+
+
 class TargetRelease(object):
     """
     Used for releasing targets
@@ -499,7 +504,7 @@ class TargetRelease(object):
     def start(self):
 
         # DO setup and sanity check
-        self.repo_prerelease_setup(sha1=self.niak_release_commit, branch=self.niak_release_from_branch)
+        self.repo_prerelease_setup(sha1=self.niak_release_commit, from_branch=self.niak_release_from_branch)
 
         if self.release_target:
             if self.recompute_target:
@@ -511,41 +516,40 @@ class TargetRelease(object):
 
         self._finaly()
 
-    def repo_prerelease_setup(self, sha1, branch=None, origin='origin', remote='remote'):
+    def repo_prerelease_setup(self, sha1, from_branch=None, origin='origin', remote='remote'):
         """
-        TODO: set origin url "git remote set-url" to the config USER (maybe put owner)
         SET local "form" and "release" branch to tip of remote branch
         Move the repo to the revision to be released.
             Targets can only be released at the tip of a branch
             Niak can be released at any revision (branch and commit)
-        :param branch: The name of the dev branch to release from
+        :param from_branch: The name of the dev branch to release from
         :return:
         """
         err_message = ("To release a target, the sha1 ref must be at "
-             "the tip a a branch sha1 {} is not in branch {} "
-             .format(sha1, branch))
+             "the tip a a branch\n sha1 {} is not at the tip of branch {} "
+                       .format(sha1, from_branch))
 
-        # Crash if the hash is not is the repo
-
-        self.niak_repo.checkout("origin/master", force=True)
-        self.niak_repo.branch(name=branch, delete=True)
-        self.niak_repo.fetch()
+        self.niak_repo.fetch(branch=from_branch)
+        self.niak_repo.checkout('{0}/{1}'.format(origin, from_branch), force=True)
+        self.niak_repo.branch(from_branch, delete=True)
+        # Crashes if the hash is not is the repo
         self.niak_repo.fail_on_error = True
         self.niak_repo.checkout(sha1, force=True)
         self.niak_repo.fail_on_error = False
+
         if self.release_target:
-            if branch is None:
+            if from_branch is None:
                 raise IOError("You have to release target from a specific branch")
             ref_dico = {k[0:len(sha1)]: v for k, v in self.niak_repo.show_ref().items()}
             if sha1 in ref_dico:
                 pass_test = False
                 for ref in ref_dico[sha1]:
                     br = ref.split('/')
-                    if origin in br[-2] and remote in br[-3] and branch in br[-1]:
+                    if origin in br[-2] and remote in br[-3] and from_branch in br[-1]:
                         pass_test = True
                         break
                 if pass_test:
-                    self.niak_repo.branch(branch, checkout=True)
+                    self.niak_repo.branch(from_branch, checkout=True)
                 else:
                     raise IOError(err_message)
 
@@ -576,9 +580,8 @@ class TargetRelease(object):
         happiness = input("Are you happy with the target?Y/[N]")
         logging.info("look at {}/logs for more info".format(self.work_dir))
 
-        # DEBUG !!!
-        # if ret_val != 0 or happiness != 'Y':
-        #     raise Error("The target was not computed properly")
+        if ret_val != 0 or happiness != 'Y':
+            raise Error("The target was not computed properly")
         return target
 
     def _push(self, path, push_tag=None, remote_name=None, branch=None, force=False):
@@ -734,39 +737,41 @@ class TargetRelease(object):
         """
         niak = config.NIAK()
         psom = config.PSOM()
-        if os.path.isdir(niak.WORK_DIR):
-            shutil.rmtree(niak.WORK_DIR)
+        if os.path.isdir(niak.WORK_DIR_TEMPLATE.format(self.niak_tag)):
+            shutil.rmtree(niak.WORK_DIR_TEMPLATE.format(self.niak_tag))
         ## HERE REFREACTOR!!!
         # Niak
-        shutil.copytree(self.niak_path, niak.WORK_DIR)
-        n_repo = simplegit.Repo(niak.WORK_DIR)
+        shutil.copytree(self.niak_path, niak.WORK_DIR_TEMPLATE.format(self.niak_tag))
+        n_repo = simplegit.Repo(niak.WORK_DIR_TEMPLATE.format(self.niak_tag))
         n_repo.checkout(self.niak_release_branch)
-        shutil.rmtree(niak.WORK_DIR+"/.git")
+        shutil.rmtree(niak.WORK_DIR_TEMPLATE.format(self.niak_tag)+"/.git")
         # PSOM
         p_repo = simplegit.Repo(self.psom_path)
+        p_repo.fetch(tags=True)
         p_repo.checkout(psom.RELEASE_TAG)
-        shutil.copytree(psom.PATH, niak.WORK_DIR+"/extensions/psom-{}".format(psom.RELEASE_TAG))
-        shutil.rmtree(niak.WORK_DIR+"/extensions/psom-{}/.git".format(psom.RELEASE_TAG))
+        shutil.copytree(psom.PATH,
+                        niak.WORK_DIR_TEMPLATE.format(self.niak_tag)+"/extensions/psom-{}".format(psom.RELEASE_TAG))
+        shutil.rmtree(niak.WORK_DIR_TEMPLATE.format(self.niak_tag)+"/extensions/psom-{}/.git".format(psom.RELEASE_TAG))
 
         # BCT
         logging.info('download BCT form source and copying')
         BCTZIP = urllib.request.urlopen(config.BCT.url)
         with zipfile.ZipFile(io.BytesIO(BCTZIP.read())) as z:
-            z.extractall(niak.WORK_DIR+"/extensions/BCT")
+            z.extractall(niak.WORK_DIR_TEMPLATE.format(self.niak_tag)+"/extensions/BCT")
 
         # the base_dir funky stuff is the way to include the leading directory in zip...
         logging.info('creating niak w denpencency zip file')
         filename, ext = os.path.splitext(niak.DEPENDENCY_RELEASE)
-        shutil.make_archive(niak.WORK_DIR+"/../"+filename,
-                            ext[1:], root_dir=niak.WORK_DIR+"/../",
+        shutil.make_archive(niak.WORK_DIR_TEMPLATE.format(self.niak_tag)+"/../"+filename,
+                            ext[1:], root_dir=niak.WORK_DIR_TEMPLATE.format(self.niak_tag)+"/../",
                             base_dir="niak-{}".format(self.niak_tag))
 
-        return niak.WORK_DIR+"/../"+niak.DEPENDENCY_RELEASE
+        return niak.WORK_DIR_TEMPLATE.format(self.niak_tag)+"/../"+niak.DEPENDENCY_RELEASE
 
     def _merge(self, repo, branch1, branch2, tag=None):
         """
         Merge branch1 to branch2
-
+d
         :param repo: a simplegit repo
         :param branch1: The branch that provide the merge (need to exist)
         :param branch2: The branch that receive the merge (does not need to exist)
