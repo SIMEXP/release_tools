@@ -60,7 +60,7 @@ class DOCKER:
     Docker Config<>
     """
     # Version of octave docker image used
-    IMAGE = "simexp/niak_dependency:u12_o4"
+    IMAGE = "simexp/niak_dependency:o4_cross_u16"
     FILE = "Dockerfile"
 
 class TARGET:
@@ -73,7 +73,7 @@ class TARGET:
         self.PATH = "{}/niak_target".format(Repo().ROOT)
         self.RESULT_DIR = os.path.join(self.WORK_DIR, "result")  # Niak default output
         self.LOG_PATH = "{}/result/logs".format(self.WORK_DIR)
-        self.TAG_SUFFIX = "ag"
+        self.TAG_SUFFIX = 'aj'
 
 
 class NIAK:
