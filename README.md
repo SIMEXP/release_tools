@@ -18,7 +18,7 @@ NIAK.TAG_NAME  = "vX.X.X"
 PSOM.RELEASE_TAG  = X.X.X # The version of psom used to compute the target
 ```
 
- Then, release a target only :
+ Then, to release a target only :
  ```bash
 cd bin
 ./release_new_target.py -r <commit_hash>
