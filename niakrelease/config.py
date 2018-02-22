@@ -30,29 +30,37 @@ import os.path
 def to_full_dir_path(path):
     return os.path.dirname(os.path.abspath(os.path.expandvars(os.path.expanduser(path))))
 
+
+
 class Repo():
 
     DEBUG = False
 
+    __DEBUG_SANDBOX__ = "/niak/niak_debug"
+    __SANDBOX__ = "/niak"
+
+    __DEBUG_GIT_REPO__ = "poquirion"
+    __GIT_REPO__ = "simexp"
+
     @property
     def ROOT(self):
         if self.DEBUG:
-            return "/niak/niak_debug"
+            return self.__DEBUG_SANDBOX__
         else:
-            return "/niak"
+            return self.__SANDBOX__
     @property
     def USER(self):
         if self.DEBUG:
             return getpass.getuser()
         else:
-            return "simexp"
+            return self.__SANDBOX__
 
     @property
     def OWNER(self):
         if self.DEBUG:
-            return "poquirion"
+            return self.__DEBUG_GIT_REPO__
         else:
-            return "simexp"
+            return self.__GIT_REPO__
 
 
 class DOCKER:
@@ -89,11 +97,9 @@ class NIAK:
         self.URL = "https://github.com/{0}/niak.git".format(Repo().USER)
 
         self.RELEASE_BRANCH = "devel"
-        self.RELEASE_FROM_BRANCH = "devel"
-        self.RELEASE_FROM_COMMIT = None  # If None will release from tip
+        self.RELEASE_FROM_BRANCH = "master"
+        self.RELEASE_FROM_COMMIT = None
 
-        # RELEASE_BRANCH = ""
-        # self.TAG_NAME = "v0.18.1"
         self.TAG_NAME = "dev"
         # release Name
         self.DEPENDENCY_RELEASE = "niak-with-dependencies.zip"
