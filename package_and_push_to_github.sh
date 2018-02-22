@@ -41,7 +41,7 @@ if [ ! -f ${SING_IMAGE}  ] ; then
 fi
 
 rm -r niak_singularity
-cp -r  niak_singularity_template niak_singularity
+cp -r  ./niak_singularity_template niak_singularity
 mv ${SING_IMAGE} niak_singularity/.
 
 filename=niak_singularity.tgz
