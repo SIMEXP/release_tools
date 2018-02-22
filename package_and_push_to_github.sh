@@ -40,14 +40,23 @@ if [ ! -f ${SING_IMAGE}  ] ; then
   echo ${SING_IMAGE} not found
 fi
 
-rm -r niak_singularity
+rm -r niak_singularity  > /dev/null 2>&1 
 cp -r  ./niak_singularity_template niak_singularity
 mv ${SING_IMAGE} niak_singularity/.
+
+
+function finish {
+  rm -r $filename niak_singularity > /dev/null 2>&1
+}
+trap finish EXIT
 
 filename=niak_singularity.tgz
 
 
 tar -zcvf $filename niak_singularity 
+
+
+
 
 tag=$(echo ${SING_IMAGE} | sed "s/.*-\([0-9].[0-9].[0-9]\)\.img/\1/")
 owner=simexp
